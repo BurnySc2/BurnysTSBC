@@ -7,7 +7,11 @@ Sadly not everyone will be satisfied, since I can only offer a few layouts / var
 --]]
 
 --gui element variable names
-local str_versionCheck = "0.0.5"
+
+--[[stuff that broke the mod in 0.15:
+]]--
+
+local str_versionCheck = "0.0.6"
 
 local btn_menu = "btn_menu"
 local btn_menu2 = "btn_menu2"
@@ -146,6 +150,8 @@ end
 
 --create the main mod-gui menu with all the buttons and stuffs
 local function create_menu(player)
+	--/c game.player.insert{name="blueprint", count=100}
+	--player.print("helloo "..tostring(player))
 	if global["BurnysTSBC"] == nil then
 		global["BurnysTSBC"] = {}
 	end
@@ -172,7 +178,8 @@ local function create_menu(player)
 	frame.add{type="flow", name="flow_inserter_type", direction="horizontal"}
 	frame.flow_inserter_type.add{type="label", caption="Inserter type:"}
 	frame.flow_inserter_type.add{type="button", name=btn_inserter_type, caption=inserter_types[data.int_inserter_type], tooltip=tableToString(inserter_types)}
-	spr_inserter_type = frame.flow_inserter_type.add{type="sprite", name=spr_inserter_type, sprite="item/"..inserter_types[data.int_inserter_type]}
+	--spr_inserter_type = frame.flow_inserter_type.add{type="sprite", name=spr_inserter_type, sprite="item/"..inserter_types[data.int_inserter_type]}
+	frame.flow_inserter_type.add{type="sprite", name=spr_inserter_type, sprite="item/"..inserter_types[data.int_inserter_type]}
 
 	frame.add{type="flow", name="flow_filter", direction="horizontal"}
 	frame.flow_filter.add{type="checkbox", name=chk_use_filter, state=data.bool_use_filter, caption="use filter inserters?", tooltip="If yes: If previously normal or fast inserter is selected, then normal filter inserters will be used. If stack inserter is selected, then stack-filter-inserter will be used."}
@@ -181,7 +188,8 @@ local function create_menu(player)
 	--spr_resource_type = frame.flow_filter.add{type="sprite", name=spr_resource_type, sprite="item/"..resource_types[data.int_resource_type]}
 	frame.flow_filter.add{type="button", name=btn_resource_type, caption=data.str_resource_type, tooltip="Hold an item in your mouse cursor and click this button, and the filter will be set to it."}
 	if data.str_resource_type ~= "none" then
-		spr_resource_type = frame.flow_filter.add{type="sprite", name=spr_resource_type, sprite="item/"..data.str_resource_type}
+		--spr_resource_type = frame.flow_filter.add{type="sprite", name=spr_resource_type, sprite="item/"..data.str_resource_type}
+		frame.flow_filter.add{type="sprite", name=spr_resource_type, sprite="item/"..data.str_resource_type}
 	end
 
 	frame.add{type="checkbox", name=chk_use_chests, state=data.bool_use_chest, caption="use chests as buffer?"}
@@ -189,7 +197,8 @@ local function create_menu(player)
 	frame.add{type="flow", name="flow_chests", direction="horizontal"}
 	frame.flow_chests.add{type="label", caption="Chest type:"}
 	frame.flow_chests.add{type="button", name=btn_chest_type, caption=chest_types[data.int_chest_type], tooltip=tableToString(chest_types)}
-	spr_chest_type = frame.flow_chests.add{type="sprite", name=spr_chest_type, sprite="item/"..chest_types[data.int_chest_type]}
+	--spr_chest_type = frame.flow_chests.add{type="sprite", name=spr_chest_type, sprite="item/"..chest_types[data.int_chest_type]}
+	frame.flow_chests.add{type="sprite", name=spr_chest_type, sprite="item/"..chest_types[data.int_chest_type]}
 
 	frame.add{type="flow", name="flow_chests_limit", direction="horizontal"}
 	frame.flow_chests_limit.add{type="label", caption="Chest limit:"}
@@ -198,7 +207,8 @@ local function create_menu(player)
 	frame.add{type="flow", name="flow_belt_type", direction="horizontal"}
 	frame.flow_belt_type.add{type="label", caption="Belt type:"}
 	frame.flow_belt_type.add{type="button", name=btn_belt_type, caption=belt_types[data.int_belt_type], tooltip=tableToString(belt_types)}
-	spr_belt_type = frame.flow_belt_type.add{type="sprite", name=spr_belt_type, sprite="item/"..belt_types[data.int_belt_type]}
+	--spr_belt_type = frame.flow_belt_type.add{type="sprite", name=spr_belt_type, sprite="item/"..belt_types[data.int_belt_type]}
+	frame.flow_belt_type.add{type="sprite", name=spr_belt_type, sprite="item/"..belt_types[data.int_belt_type]}
 
 	frame.add{type="flow", name="flow_direction", direction="horizontal"}
 	frame.flow_direction.add{type="label", caption="Belt direction:", tooltip="The mod will try to use splitters and belts in this direction."}
@@ -667,7 +677,10 @@ local function on_player_created(event)
 	--local frame = game.players[event.player_index].gui.top[btn_menu]
 	set_global_variables(player, {})
 	--player.print("onPlayerCreated: button created for "..tostring(player.name))
-	if (player.force.technologies["automated-construction"].researched) then
+
+	--TODO uncomment the following:
+	if (player.force.technologies["construction-robotics"].researched) then
+		--if true then
 		if not player.gui.top[btn_menu] then
 			player.gui.top.add{type = "button", name=btn_menu, caption = "TSBC", tooltip = "Burny's Train Station Blueprint Creator"}
 		end
@@ -682,7 +695,8 @@ script.on_init(function()
 	for _, player in pairs(game.players) do
 		set_global_variables(player, {})
 		--player.print("onInit: button created for "..tostring(player.name))
-		if (player.force.technologies["automated-construction"].researched) then
+		--if (player.force.technologies["automated-construction"].researched) then
+		if (player.force.technologies["construction-robotics"].researched) then
 			if not player.gui.top[btn_menu] then
 				player.gui.top.add{type = "button", name=btn_menu, caption = "TSBC", tooltip = "Burny's Train Station Blueprint Creator"}
 			end
@@ -694,7 +708,7 @@ script.on_event(defines.events.on_research_finished, function(event)
 	for _, player in pairs(game.players) do
 		--set_global_variables(player, {})
 		--player.print("onResearchFinished: button created "..tostring(player.name))
-		if (player.force.technologies["automated-construction"].researched) then
+		if (player.force.technologies["construction-robotics"].researched) then
 			if not player.gui.top[btn_menu] then
 				player.gui.top.add{type = "button", name=btn_menu, caption = "TSBC", tooltip = "Burny's Train Station Blueprint Creator"}
 			end

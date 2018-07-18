@@ -1,10 +1,10 @@
 {
   "name": "BurnysTSBC",
-  "version": "0.0.5",
+  "version": "0.0.6",
   "title": "Burnys Train Station Blueprint Creator",
   "author": "Burny",
   "contact": "gamingburny@gmail.com",
-  "factorio_version": "0.14",
+  "factorio_version": "0.15",
   "description": "A helper mod to quickly create train station blueprints for different train lengths and individual needs.",
   "dependencies": []
 }
