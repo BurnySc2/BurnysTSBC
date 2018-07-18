@@ -10,17 +10,20 @@ You can see a [proper description and screenshots here](https://mods.factorio.co
 # How to use the GUI of the mod properly?
 That can [also be seen here](https://mods.factorio.com/mod/BurnysTSBC)
 
+# TODO list
+Also [on here](https://mods.factorio.com/mod/BurnysTSBC)
+
 # Version history
 Available [here at the bottom](https://mods.factorio.com/mod/BurnysTSBC)
 
 # Installation
 Either start Factorio and look in the mod portal for "BurnysTSBC" and hit download.
-A new file zip file will be created in your mod folder (VERSION needs to be replaced with the mod version, e.g. 0.1.3):
+A new file zip file will be created in your mod folder (<VERSION> needs to be replaced with the mod version, e.g. 0.1.3):
 ```
 C:\Users\<USER>\AppData\Roaming\Factorio\mods\BurnysTSBC_<VERSION>.zip
 ```
 
-Or download all these files and put them in a subfolder in your mod folder (VERSION needs to be replaced with the mod version, e.g. 0.1.3)
+Or download all these files and put them in a subfolder in your mod folder (<VERSION> needs to be replaced with the mod version, e.g. 0.1.3)
 e.g.:
 ```
 C:\Users\<USER>\AppData\Roaming\Factorio\mods\BurnysTSBC_<VERSION>\control.lua
