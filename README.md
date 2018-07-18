@@ -2,7 +2,7 @@
 [Link to the mod on the mod portal](https://mods.factorio.com/mod/BurnysTSBC)
 
 # What is this?
-This is a [mod](https://mods.factorio.com/) for the game [factorio](https://factorio.com/).
+This is a [mod](https://mods.factorio.com/) for the game [Factorio](https://factorio.com/).
 
 # What does this mod do?
 You can see a [proper description and screenshots here](https://mods.factorio.com/mod/BurnysTSBC)
@@ -32,4 +32,4 @@ C:\Users\<USER>\AppData\Roaming\Factorio\mods\BurnysTSBC_<VERSION>\info.json
 ```
 
 ## Bug reports, ideas and contributing
-If you have any issues, ideas or feedback, please create [a new issue](https://github.com/BurnySc2/BurnysTSBC/issues/new). Pull requests are also welcome!
+If you have any issues, ideas or feedback, [please create a new issue](https://github.com/BurnySc2/BurnysTSBC/issues/new). Pull requests are also welcome!
