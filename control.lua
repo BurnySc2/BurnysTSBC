@@ -260,10 +260,12 @@ function add_madzuri_wire_setup(bpt, data, itemname, x1, y1, direction, yoffset)
 			constant=-6,
 			operation="/",
 			output_signal={type="item",
-			name=resource_types[data.int_raesource_type]}},--resource_types[data.int_resource_type]}
+			name=resource_types[data.int_resource_type]}},--resource_types[data.int_resource_type]}
 		}}
 
-	if station_types[data.int_station_type] == "unloading" then
+	--i thought at first a 2nd arithmetic-combinator is required for unloading, but actually isnt. instead, what has to be reverse from
+	--loading to unloading is: the "<" to ">" in the inserter, and "1" to "-1" in inserter in the condition setting
+	if false then --station_types[data.int_station_type] == "unloading" then
 		bpt[#bpt+1] = {
 			entity_number = #bpt+1,
 			name = itemname,
@@ -272,7 +274,7 @@ function add_madzuri_wire_setup(bpt, data, itemname, x1, y1, direction, yoffset)
 			control_behavior={arithmetic_conditions={first_signal={
 				type="item",
 				name=resource_types[data.int_resource_type],},
-				constant=5,
+				constant=0,
 				operation="+",
 				output_signal={type="item",
 				name=resource_types[data.int_resource_type]}},
@@ -292,8 +294,10 @@ end
 function place_item(bpt, data, itemname, x1, y1, direction, yoffset)
 	yoffset = yoffset or 0
 	comparatorr = "<"
+	control_constant = 3
 	if station_types[data.int_station_type] == "unloading" then
 		comparatorr = ">"
+		control_constant = -3
 	end
 	bpt[#bpt+1] = {
 		entity_number = #bpt+1,
@@ -314,7 +318,7 @@ function place_item(bpt, data, itemname, x1, y1, direction, yoffset)
 				count = 200
 			}
 		},
-		control_behavior={circuit_condition={first_signal={type="item", name=resource_types[data.int_resource_type]}, constant=1, comparator=comparatorr}}}
+		control_behavior={circuit_condition={first_signal={type="item", name=resource_types[data.int_resource_type]}, constant=control_constant, comparator=comparatorr}}}
 	return bpt
 end
 
@@ -440,11 +444,11 @@ function build_blueprint(data)
 	temp_check2 = stop - temp_check1
 	for i = start, stop do
 		if i % 7 == 0 then
-			place_item(bpt, data, "medium-electric-pole", 3, i, 4, ycorrection)
-			place_item(bpt, data, "medium-electric-pole", -4, i, 4, ycorrection)
+			place_item(bpt, data, "medium-electric-pole", 2, i, 4, ycorrection)
+			place_item(bpt, data, "medium-electric-pole", -3, i, 4, ycorrection)
 			if data.bool_lamps then
-				place_item(bpt, data, "small-lamp", 2, i, 4, ycorrection)
-				place_item(bpt, data, "small-lamp", -3, i, 4, ycorrection)
+				place_item(bpt, data, "small-lamp", 1, i, 4, ycorrection)
+				place_item(bpt, data, "small-lamp", -2, i, 4, ycorrection)
 			end
 		end
 		if i % 7 == 4 and (i < temp_check1 or i > temp_check2) and data.bool_refuel then
@@ -497,14 +501,14 @@ function build_blueprint(data)
 						-- if chests arent logistic chests, then use the next row of inserters
 						place_row_of_items(bpt, data, chosen_inserter, 3, i+1, i+6, tempDirection, ycorrection)
 						if data.bool_evenly_load then
-							add_madzuri_wire_setup(bpt, data, "arithmetic-combinator", 5, i, 2, ycorrection)
+							add_madzuri_wire_setup(bpt, data, "arithmetic-combinator", 4, i, 2, ycorrection)
 						end
 					end
 					place_row_of_items(bpt, data, chosen_chest, -3, i+1, i+6, 6, ycorrection)
 					if data.int_chest_type < 3 then
 						place_row_of_items(bpt, data, chosen_inserter, -4, i+1, i+6, (tempDirection + 4) % 8, ycorrection)
 						if data.bool_evenly_load then
-							add_madzuri_wire_setup(bpt, data, "arithmetic-combinator", -5, i, 2, ycorrection)
+							add_madzuri_wire_setup(bpt, data, "arithmetic-combinator", -4, i, 2, ycorrection)
 						end
 					end
 				end
