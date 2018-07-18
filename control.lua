@@ -119,11 +119,6 @@ function set_global_variables(player, data)
 				global["BurnysTSBC"][player.name].bool_connect_chests = data.bool_connect_chests
 			end
 
-			--global["BurnysTSBC"][player.name].bool_disable_train_stop = false
-			--if data.bool_disable_train_stop ~= nil then
-				--global["BurnysTSBC"][player.name].bool_disable_train_stop = data.bool_disable_train_stop
-			--end
-
 			global["BurnysTSBC"][player.name].bool_signals = true
 			if data.bool_signals ~= nil then
 				global["BurnysTSBC"][player.name].bool_signals = data.bool_signals
@@ -136,7 +131,7 @@ function set_global_variables(player, data)
 
 			global["BurnysTSBC"][player.name].str_error_message = data.str_error_message or "Errors will appear here"
 
-			--for stacker setup
+			--for stacker layout / design
 			global["BurnysTSBC"][player.name].int_stacker_total_train_length = data.int_stacker_total_train_length or 3
 			global["BurnysTSBC"][player.name].int_stacker_number_of_lanes = data.int_stacker_number_of_lanes or 3
 			global["BurnysTSBC"][player.name].bool_stacker_is_diagonal = true
@@ -182,6 +177,8 @@ local function tableToString(table)
 end
 
 --create the main mod-gui menu with all the buttons and text inputs and stuffs
+--it creates the gui elements in the order they are shown here
+--there are 3 if else courses the program can take: one for non-fluid handling, one for fluid handling, and one for stackers
 local function create_menu(player)
 	--/c game.player.insert{name="blueprint", count=100}
 	--player.print("helloo "..tostring(player))
@@ -346,7 +343,7 @@ local function create_menu(player)
 	--player.print("You clicked the button!")
 end
 
---reads data from the GUI and stores them into variables, so they can be processed by this mod without having to read the GUI twice
+--reads data from the GUI and stores them into variables, so they can be processed by this mod without having to read the GUI more than once... idk if that is even helpful
 local function readGUIdata(player, frame)
 	if (frame) then
 		GUIdata = {}
@@ -384,7 +381,7 @@ local function readGUIdata(player, frame)
 			g["int_refuel_type"] = index(fuel_types, frame.flow_fuel_type.btn_fuel_type.caption)
 			g["bool_signals"] = frame.chk_signals.state
 			g["bool_lamps"] = frame.chk_lamps.state
-		elseif frame.flow_station_type.btn_station_type.caption == "stacker" then
+		elseif frame.flow_station_type.btn_station_type.caption == "stacker" then --only read stacker-data if stacker is selected
 			g["int_station_type"] = index(station_types, frame.flow_station_type.btn_station_type.caption)
 			g["int_stacker_total_train_length"] = tonumber(frame.flow_stacker_train_length.txt_stacker_length.text)
 			g["int_stacker_number_of_lanes"] = tonumber(frame.flow_stacker_lanes.txt_stacker_lanes.text)
@@ -1360,8 +1357,17 @@ local function on_gui_click(event)
 
 			-- stuff used when using non fluid station
 			if -1 ~= index(non_fluid_station_types, station_types[data.int_station_type]) then
+				if tonumber(data.int_locos) == nil then
+					data.str_error_message = "Invalid number of locomotives. Resetting value."
+				end
+				if tonumber(data.int_cargo) == nil then
+					data.str_error_message = "Invalid number of cargo wagons. Resetting value."
+				end
 				if tonumber(data.int_chest_limit) == nil then
 					data.str_error_message = "Invalid number of \"Chest limit\". Resetting value. Enter a number between -1 and 48!"
+				end
+				if tonumber(data.int_refuel_request_amount) == nil or tonumber(data.int_refuel_request_amount) < 0 or tonumber(data.int_refuel_request_amount) > 999999 then
+					data.str_error_message = "Invalid number for fuel-request amount."
 				end
 				--if data.bool_disable_train_stop and data.bool_evenly_load then
 					--data.str_error_message = "Can't use \"load evenly\" and \"disable train stop\" together."
@@ -1369,7 +1375,32 @@ local function on_gui_click(event)
 				if data.bool_connect_chests and data.bool_evenly_load then
 					data.str_error_message = "Can't use \"load evenly\" and \"connect all chests\" together."
 				end
-			elseif station_types[data.int_station_type] == "stacker" then
+				if not holding_empty_blueprint(player) then
+					data.str_error_message = "No empty blueprint in mouse cursor!"
+				end
+				if data.str_error_message == "Success!" then
+					if tonumber(data.int_locos) + tonumber(data.int_cargo) < -500 or tonumber(data.int_locos) + tonumber(data.int_cargo) > 1000  then
+						data.str_error_message = "Oh god, please use less locomotives and/or cargo wagons!"
+					end
+				end
+
+			elseif station_types[data.int_station_type] == "stacker" then --when its a stacker
+				if tonumber(data.int_stacker_number_of_lanes) == nil or tonumber(data.int_stacker_number_of_lanes) < 1 then --prevent entering non-integer characters
+					data.str_error_message = "Invalid number of lanes. Resetting value."
+				end
+				if tonumber(data.int_stacker_total_train_length) == nil or tonumber(data.int_stacker_total_train_length) < 1 then
+					data.str_error_message = "Invalid number for train length. Resetting value."
+				end
+				if not holding_empty_blueprint(player) then
+					data.str_error_message = "No empty blueprint in mouse cursor!"
+				end
+				if data.str_error_message == "Success!" then
+					if tonumber(data.int_stacker_number_of_lanes) * tonumber(data.int_stacker_total_train_length) > 16384 then --this number is 128*128
+						data.str_error_message = "Your entries for lanes + train length are too high! D:"
+					end
+				end
+
+
 
 			elseif station_types[data.int_station_type] ~= "stacker" then --when its not a stacker
 				if tonumber(data.int_locos) == nil then
