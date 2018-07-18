@@ -511,6 +511,10 @@ function build_blueprint(data)
 	--creating the new and empty blueprint table
 	bpt = {}
 
+	--collect chests so i can add green wire later on
+	chests_left_side = {}
+	chests_right_side = {}
+
 	--adding rails to the blueprint
 	locomotive_count = data.int_locos
 	cargo_count = data.int_cargo
@@ -551,66 +555,6 @@ function build_blueprint(data)
 		usingChest = 2 --the offset variable, cause if we dont use chest as buffer then we want inserters to be 2 steps closer to the train
 	end
 	usedCoordinates = {}
-
-	--IF REFILL CHECKBOX: place inserters and requester chests to refuel the train
-	start = 1
-	if not data.bool_refuel then
-		start = locomotive_count * (locomotive_length + space_between_trains)
-	end
-	stop = (1 + temp_int_double_head) * locomotive_count * (locomotive_length + space_between_trains) + cargo_count * (cargo_length + space_between_trains)
-	temp_check1 = locomotive_count * (locomotive_length + space_between_trains)
-	temp_check2 = locomotive_count * (locomotive_length + space_between_trains) + cargo_count * (cargo_length + space_between_trains)
-	for i = start, stop do --loop over the whole length of the train
-		if i % 7 == 0 then
-			if data.bool_double_head and not data.bool_refuel and i > temp_check2 then
-				break --stop when we are using double headed trains and no refuel, or else this would loop too far
-			end
-			if -1 ~= index(rightSide, sideUsed) then --place if "both" or "right" side is selected
-				place_item(bpt, data, "medium-electric-pole", 2, i, 4, ycorrection) end
-			if -1 ~= index(leftSide, sideUsed) then --place if "both" or "left" side is selected
-				place_item(bpt, data, "medium-electric-pole", -3, i, 4, ycorrection) end
-			if data.bool_lamps then
-				if -1 ~= index(rightSide, sideUsed) then --place if "both" or "right" side is selected
-					place_item(bpt, data, "small-lamp", 1, i, 4, ycorrection) end
-				if -1 ~= index(leftSide, sideUsed) then --place if "both" or "left" side is selected
-					place_item(bpt, data, "small-lamp", -2, i, 4, ycorrection) end
-			end
-		end
-		-- place refuel chest
-		if i % 7 == 4 and (i < temp_check1 or (data.bool_refuel and i > temp_check2)) then
-			if data.bool_refuel and index(sides, sideUsed) ~= 3 then
-				place_item(bpt, data, chosen_inserter, 1, i , 2, ycorrection)
-				bpt[#bpt+1] = {
-					entity_number = #bpt+1,
-					name = "logistic-chest-requester",
-					position = {x=2 + 0.5, y=i + 0.5 + ycorrection},
-					request_filters = {
-						{
-							index = 1,
-							--added in v0.0.8
-							name = fuel_types[data.int_refuel_type],
-							--name = "solid-fuel",
-							count = data.int_refuel_request_amount
-						}
-					}}
-			else -- place refuel chest on left side
-				place_item(bpt, data, chosen_inserter, -2, i , 6, ycorrection)
-				bpt[#bpt+1] = {
-					entity_number = #bpt+1,
-					name = "logistic-chest-requester",
-					position = {x=-3 + 0.5, y=i + 0.5 + ycorrection},
-					request_filters = {
-						{
-							index = 1,
-							--added in v0.0.8
-							name = fuel_types[data.int_refuel_type],
-							--name = "solid-fuel",
-							count = data.int_refuel_request_amount
-						}
-					}}
-			end
-		end
-	end
 
 	--place inserters, chests, and initial belts + splitters
 	start = locomotive_count * (locomotive_length + space_between_trains)
@@ -693,9 +637,75 @@ function build_blueprint(data)
 				end
 			end
 		end
-		for i = 2, #chests_left_side do
-			bpt[chests_left_side[i]].connections={{green={{entity_id=chests_left_side[i-1]}}}}
-			bpt[chests_right_side[i]].connections={{green={{entity_id=chests_right_side[i-1]}}}}
+		if -1 ~= index(leftSide, sideUsed) then --place if "both" or "left" side is selected
+			for i = 2, #chests_left_side do
+				bpt[chests_left_side[i]].connections={{green={{entity_id=chests_left_side[i-1]}}}}
+			end
+		end
+		if -1 ~= index(rightSide, sideUsed) then --place if "both" or "right" side is selected
+			for i = 2, #chests_right_side do
+				bpt[chests_right_side[i]].connections={{green={{entity_id=chests_right_side[i-1]}}}}
+			end
+		end
+	end
+
+	--IF REFILL CHECKBOX: place inserters and requester chests to refuel the train
+	start = 1
+	if not data.bool_refuel then
+		start = locomotive_count * (locomotive_length + space_between_trains)
+	end
+	stop = (1 + temp_int_double_head) * locomotive_count * (locomotive_length + space_between_trains) + cargo_count * (cargo_length + space_between_trains)
+	temp_check1 = locomotive_count * (locomotive_length + space_between_trains)
+	temp_check2 = locomotive_count * (locomotive_length + space_between_trains) + cargo_count * (cargo_length + space_between_trains)
+	for i = start, stop do --loop over the whole length of the train
+		if i % 7 == 0 then
+			if data.bool_double_head and not data.bool_refuel and i > temp_check2 then
+				break --stop when we are using double headed trains and no refuel, or else this would loop too far
+			end
+			if -1 ~= index(rightSide, sideUsed) then --place if "both" or "right" side is selected
+				place_item(bpt, data, "medium-electric-pole", 2, i, 4, ycorrection) end
+			if -1 ~= index(leftSide, sideUsed) then --place if "both" or "left" side is selected
+				place_item(bpt, data, "medium-electric-pole", -3, i, 4, ycorrection) end
+			if data.bool_lamps then
+				if -1 ~= index(rightSide, sideUsed) then --place if "both" or "right" side is selected
+					place_item(bpt, data, "small-lamp", 1, i, 4, ycorrection) end
+				if -1 ~= index(leftSide, sideUsed) then --place if "both" or "left" side is selected
+					place_item(bpt, data, "small-lamp", -2, i, 4, ycorrection) end
+			end
+		end
+		-- place refuel chest
+		if i % 7 == 4 and (i < temp_check1 or (data.bool_refuel and i > temp_check2)) then
+			if data.bool_refuel and index(sides, sideUsed) ~= 3 then
+				place_item(bpt, data, chosen_inserter, 1, i , 2, ycorrection)
+				bpt[#bpt+1] = {
+					entity_number = #bpt+1,
+					name = "logistic-chest-requester",
+					position = {x=2 + 0.5, y=i + 0.5 + ycorrection},
+					request_filters = {
+						{
+							index = 1,
+							--added in v0.0.8
+							name = fuel_types[data.int_refuel_type],
+							--name = "solid-fuel",
+							count = data.int_refuel_request_amount
+						}
+					}}
+			else -- place refuel chest on left side
+				place_item(bpt, data, chosen_inserter, -2, i , 6, ycorrection)
+				bpt[#bpt+1] = {
+					entity_number = #bpt+1,
+					name = "logistic-chest-requester",
+					position = {x=-3 + 0.5, y=i + 0.5 + ycorrection},
+					request_filters = {
+						{
+							index = 1,
+							--added in v0.0.8
+							name = fuel_types[data.int_refuel_type],
+							--name = "solid-fuel",
+							count = data.int_refuel_request_amount
+						}
+					}}
+			end
 		end
 	end
 
@@ -837,7 +847,7 @@ end
 
 --check for empty blueprint in mouse cursor
 function holding_empty_blueprint(player)
-	return (player.cursor_stack.valid_for_read and not player.cursor_stack.is_blueprint_setup() and player.cursor_stack.type == "blueprint")
+	return (player.cursor_stack.valid_for_read and player.cursor_stack.type == "blueprint" and not player.cursor_stack.is_blueprint_setup() )
 end
 
 --not used function
