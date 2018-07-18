@@ -7,6 +7,8 @@ Sadly not everyone will be satisfied, since I can only offer a few layouts / var
 --]]
 
 --gui element variable names
+local str_versionCheck = "0.0.5"
+
 local btn_menu = "btn_menu"
 local btn_menu2 = "btn_menu2"
 local frame_menu = "frame_menu"
@@ -25,15 +27,17 @@ local btn_direction_belt = "btn_direction_belt"
 local txt_fuel_request_amount = "txt_fuel_request_amount"
 local chk_refuel = "chk_refuel"
 local chk_evenly_load = "chk_evenly_load"
+local chk_connect_chests = "chk_connect_chests"
 local chk_signals = "chk_signals"
 local chk_lamps = "chk_lamps"
 local btn_create_blueprint = "btn_create_blueprint"
 local lbl_error_message = "lbl_error_message"
 
+
 --tables for "lookups"
 local station_types = {"loading","unloading"}--,"refuel"}
 local inserter_types = {"inserter","fast-inserter","stack-inserter"}
-local resource_types = {"iron-ore","copper-ore","stone","coal","iron-plate","copper-plate","steel-plate","empty-barrel","crude-oil-barrel","iron-gear-wheel","copper-cable","electronic-circuit","advanced-circuit"}
+--local resource_types = {"iron-ore","copper-ore","stone","coal","iron-plate","copper-plate","steel-plate","empty-barrel","crude-oil-barrel","iron-gear-wheel","copper-cable","electronic-circuit","advanced-circuit"}
 local chest_types = {"iron-chest","steel-chest","logistic-chest-requester","logistic-chest-passive-provider","logistic-chest-active-provider","logistic-chest-storage"}
 local belt_types = {"transport-belt", "fast-transport-belt", "express-transport-belt"}
 local flow_directions = {"none","front","back"}--,"side"}
@@ -42,12 +46,17 @@ local flow_directions = {"none","front","back"}--,"side"}
 function set_global_variables(player, data)
 	if global["BurnysTSBC"] then
 		if global["BurnysTSBC"][player.name] then
+			global["BurnysTSBC"][player.name].versionCheck = str_versionCheck
+
+			--player.print("Set new data to "..tostring(global["BurnysTSBC"][player.name].versionCheck).." "..str_versionCheck)
+
 			global["BurnysTSBC"][player.name].bool_menu_open = data.bool_menu_open or false
 
 			global["BurnysTSBC"][player.name].bool_double_head = true
 			if data.bool_double_head ~= nil then
 				global["BurnysTSBC"][player.name].bool_double_head = data.bool_double_head
 			end
+
 			global["BurnysTSBC"][player.name].int_locos = data.int_locos or 1
 			global["BurnysTSBC"][player.name].int_cargo = data.int_cargo or 2
 			global["BurnysTSBC"][player.name].int_station_type = data.int_station_type or 1
@@ -58,7 +67,11 @@ function set_global_variables(player, data)
 				global["BurnysTSBC"][player.name].bool_use_filter = data.bool_use_filter
 			end
 
-			global["BurnysTSBC"][player.name].int_resource_type = data.int_resource_type or 1
+			--global["BurnysTSBC"][player.name].int_resource_type = data.int_resource_type or 1 --obsolete since v0.0.5
+			global["BurnysTSBC"][player.name].str_resource_type = "none"
+			if data.str_resource_type ~= nil then
+				global["BurnysTSBC"][player.name].str_resource_type = data.str_resource_type
+			end
 
 			global["BurnysTSBC"][player.name].bool_use_chest = true
 			if data.bool_use_chest ~= nil then
@@ -81,6 +94,11 @@ function set_global_variables(player, data)
 				global["BurnysTSBC"][player.name].bool_evenly_load = data.bool_evenly_load
 			end
 
+			global["BurnysTSBC"][player.name].bool_connect_chests = false
+			if data.bool_connect_chests ~= nil then
+				global["BurnysTSBC"][player.name].bool_connect_chests = data.bool_connect_chests
+			end
+
 			global["BurnysTSBC"][player.name].bool_signals = true
 			if data.bool_signals ~= nil then
 				global["BurnysTSBC"][player.name].bool_signals = data.bool_signals
@@ -92,6 +110,8 @@ function set_global_variables(player, data)
 			end
 
 			global["BurnysTSBC"][player.name].str_error_message = data.str_error_message or "Errors will appear here"
+
+			return global["BurnysTSBC"][player.name]
 		else
 			global["BurnysTSBC"][player.name] = {}
 			set_global_variables(player, data)
@@ -131,9 +151,8 @@ local function create_menu(player)
 	end
 	data = global["BurnysTSBC"][player.name]
 	if data == nil then
-		set_global_variables(player, {})
+		data = set_global_variables(player, {})
 	end
-	data = global["BurnysTSBC"][player.name]
 
 	frame = player.gui.left.add{type="frame", name=frame_menu, direction="vertical"}
 	frame.add{type="checkbox", name=chk_double_head, state=data.bool_double_head, caption="Locomotives at each end? (double headed?)", tooltip="Does your train have locomotives at both ends or only at one end?"}
@@ -157,9 +176,13 @@ local function create_menu(player)
 
 	frame.add{type="flow", name="flow_filter", direction="horizontal"}
 	frame.flow_filter.add{type="checkbox", name=chk_use_filter, state=data.bool_use_filter, caption="use filter inserters?", tooltip="If yes: If previously normal or fast inserter is selected, then normal filter inserters will be used. If stack inserter is selected, then stack-filter-inserter will be used."}
-	frame.flow_filter.add{type="label", caption="resource type:", tooltip="Enter the transported resource type here, even if you aren't using filter inserters. This setting is applied to requester chests or the the \"load/unload chests evenly\" option, if ticked."}
-	frame.flow_filter.add{type="button", name=btn_resource_type, caption=resource_types[data.int_resource_type], tooltip=tableToString(resource_types)}
-	spr_resource_type = frame.flow_filter.add{type="sprite", name=spr_resource_type, sprite="item/"..resource_types[data.int_resource_type]}
+	frame.flow_filter.add{type="label", caption="resource type:", tooltip="Enter the transported resource type here, even if you aren't using filter inserters. This setting is applied to requester chests or the \"load/unload chests evenly\" option, if ticked."}
+	--frame.flow_filter.add{type="button", name=btn_resource_type, caption=resource_types[data.int_resource_type], tooltip=tableToString(resource_types)}
+	--spr_resource_type = frame.flow_filter.add{type="sprite", name=spr_resource_type, sprite="item/"..resource_types[data.int_resource_type]}
+	frame.flow_filter.add{type="button", name=btn_resource_type, caption=data.str_resource_type, tooltip="Hold an item in your mouse cursor and click this button, and the filter will be set to it."}
+	if data.str_resource_type ~= "none" then
+		spr_resource_type = frame.flow_filter.add{type="sprite", name=spr_resource_type, sprite="item/"..data.str_resource_type}
+	end
 
 	frame.add{type="checkbox", name=chk_use_chests, state=data.bool_use_chest, caption="use chests as buffer?"}
 
@@ -186,6 +209,7 @@ local function create_menu(player)
 	frame.flow_fuel_request_amount.add{type="textfield", name=txt_fuel_request_amount, text=tostring(data.int_refuel_request_amount), tooltip="How much solid fuel should be requested per requester chest next to each locomotive?"}
 
 	frame.add{type="checkbox", name=chk_evenly_load, state=data.bool_evenly_load, caption="load/unload chests evenly?", tooltip="This option makes use of MadZuri's smart loading/unloading trick with combintators and wires."}
+	frame.add{type="checkbox", name=chk_connect_chests, state=data.bool_connect_chests, caption="connect all chests with green wire?", tooltip="Will connect all chests of each side with green wire. You will have to do one more connection from left to right side, so the circuit network will count the number of items all chests contain."}
 	frame.add{type="checkbox", name=chk_signals, state=data.bool_signals, caption="place signals next to station?", tooltip="If double headed train is used, two signals are placed near the rear of the train. If single headed train is used, one signal will be placed at the rear and one in the front."}
 	frame.add{type="checkbox", name=chk_lamps, state=data.bool_lamps, caption="place lamps near poles?"}
 
@@ -197,17 +221,24 @@ local function create_menu(player)
 end
 
 --reads data from the GUI and stores them into variables, so they can be processed by this mod
-local function readGUIdata(frame)
+local function readGUIdata(player, frame)
 	if (frame) then
 		GUIdata = {}
 		g = GUIdata
+		g["versionCheck"] = global["BurnysTSBC"][player.name].versionCheck
+		if g.versionCheck ~= str_versionCheck then
+			--player.print("GUI read error: "..tostring(g["versionCheck"]).." "..str_versionCheck)
+			set_global_variables(player, {})
+			return "versionMismatch"
+		end
 		g["bool_double_head"] = frame.chk_double_head.state
 		g["int_locos"] = tonumber(frame.flow_locos.txt_locos.text)
 		g["int_cargo"] = tonumber(frame.flow_cargos.txt_cargo.text)
 		g["int_station_type"] = index(station_types, frame.flow_station_type.btn_station_type.caption)
 		g["int_inserter_type"] = index(inserter_types, frame.flow_inserter_type.btn_inserter_type.caption)
 		g["bool_use_filter"] = frame.flow_filter.chk_use_filter.state
-		g["int_resource_type"] = index(resource_types, frame.flow_filter.btn_resource_type.caption)
+		--g["int_resource_type"] = index(resource_types, frame.flow_filter.btn_resource_type.caption) --obsolete since v0.0.5
+		g["str_resource_type"] = frame.flow_filter.btn_resource_type.caption or "none"
 		g["bool_use_chest"] = frame.chk_use_chests.state
 		g["int_chest_type"] = index(chest_types, frame.flow_chests.btn_chest_type.caption)
 		g["int_chest_limit"] = tonumber(frame.flow_chests_limit.txt_chest_limit.text)
@@ -216,6 +247,7 @@ local function readGUIdata(frame)
 		g["bool_refuel"] = frame.flow_fuel_request_amount.chk_refuel.state
 		g["int_refuel_request_amount"] = tonumber(frame.flow_fuel_request_amount.txt_fuel_request_amount.text)
 		g["bool_evenly_load"] = frame.chk_evenly_load.state
+		g["bool_connect_chests"] = frame.chk_connect_chests.state
 		g["bool_signals"] = frame.chk_signals.state
 		g["bool_lamps"] = frame.chk_lamps.state
 		return g
@@ -248,20 +280,24 @@ function add_madzuri_wire_setup(bpt, data, itemname, x1, y1, direction, yoffset)
 	end
 
 	--this creates the first combinator. only one is needd for loading station, two for unloading stations
-	bpt[#bpt+1] = {
-		entity_number = #bpt+1,
-		name = itemname,
-		position = {x=actualx1, y=y1 + 7 + 0.5 + yoffset},
-		direction = direction1,
-		connections={{green={{entity_id=#bpt-6, circuit_id = 1}}}},
-		control_behavior={arithmetic_conditions={first_signal={
-			type="item",
-			name=resource_types[data.int_resource_type],},
-			constant=-6,
-			operation="/",
-			output_signal={type="item",
-			name=resource_types[data.int_resource_type]}},--resource_types[data.int_resource_type]}
-		}}
+	if data.str_resource_type ~= "none" then
+		bpt[#bpt+1] = {
+			entity_number = #bpt+1,
+			name = itemname,
+			position = {x=actualx1, y=y1 + 7 + 0.5 + yoffset},
+			direction = direction1,
+			connections={{green={{entity_id=#bpt-6, circuit_id = 1}}}},
+			control_behavior={arithmetic_conditions={first_signal={
+				type="item",
+				--name=resource_types[data.int_resource_type],},
+				name=data.str_resource_type,},
+				constant=-6,
+				operation="/",
+				output_signal={type="item",
+				--name=resource_types[data.int_resource_type]}},--resource_types[data.int_resource_type]}
+				name=data.str_resource_type,}},
+			}}
+	end
 
 	--i thought at first a 2nd arithmetic-combinator is required for unloading, but actually isnt. instead, what has to be reverse from
 	--loading to unloading is: the "<" to ">" in the inserter, and "1" to "-1" in inserter in the condition setting
@@ -273,11 +309,13 @@ function add_madzuri_wire_setup(bpt, data, itemname, x1, y1, direction, yoffset)
 			direction = 0,
 			control_behavior={arithmetic_conditions={first_signal={
 				type="item",
-				name=resource_types[data.int_resource_type],},
+				--name=resource_types[data.int_resource_type],},
+				name=data.str_resource_type,},
 				constant=0,
 				operation="+",
 				output_signal={type="item",
-				name=resource_types[data.int_resource_type]}},
+				--name=resource_types[data.int_resource_type]}},
+				name=data.str_resource_type}},
 			},
 			connections={{green={{entity_id=#bpt, circuit_id=2}},
 		}}}
@@ -299,26 +337,40 @@ function place_item(bpt, data, itemname, x1, y1, direction, yoffset)
 		comparatorr = ">"
 		control_constant = -3
 	end
-	bpt[#bpt+1] = {
-		entity_number = #bpt+1,
-		name = itemname,
-		position = {x=x1 + 0.5, y=y1 + 0.5 + yoffset},
-		direction = direction,
-		bar = data.int_chest_limit,
-		filters = {
-			{
-			index = 1,
-			name = resource_types[data.int_resource_type]
-			}
-		},
-		request_filters = {
-			{
+	if data.str_resource_type ~= "none" then
+		bpt[#bpt+1] = {
+			entity_number = #bpt+1,
+			name = itemname,
+			position = {x=x1 + 0.5, y=y1 + 0.5 + yoffset},
+			direction = direction,
+			bar = data.int_chest_limit,
+			filters = {
+				{
 				index = 1,
-				name = resource_types[data.int_resource_type],
-				count = 200
-			}
-		},
-		control_behavior={circuit_condition={first_signal={type="item", name=resource_types[data.int_resource_type]}, constant=control_constant, comparator=comparatorr}}}
+				--name = resource_types[data.int_resource_type]
+				name=data.str_resource_type
+				}
+			},
+			request_filters = {
+				{
+					index = 1,
+					--name = resource_types[data.int_resource_type],
+					name=data.str_resource_type,
+					count = 200
+				}
+			},
+			control_behavior={circuit_condition={first_signal={type="item",
+			--name=resource_types[data.int_resource_type]},
+			name=data.str_resource_type},
+			constant=control_constant, comparator=comparatorr}}}
+	else
+		bpt[#bpt+1] = {
+			entity_number = #bpt+1,
+			name = itemname,
+			position = {x=x1 + 0.5, y=y1 + 0.5 + yoffset},
+			direction = direction,
+			bar = data.int_chest_limit,}
+	end
 	return bpt
 end
 
@@ -416,7 +468,7 @@ function build_blueprint(data)
 			place_item(bpt, data, "rail-signal", 1, 2 * data.int_locos * (locomotive_length + space_between_trains) + data.int_cargo * (cargo_length + space_between_trains) - 1, 4)
 			place_item(bpt, data, "rail-chain-signal", -2, 2 * data.int_locos * (locomotive_length + space_between_trains) + data.int_cargo * (cargo_length + space_between_trains) - 1, 0)
 		else
-			place_item(bpt, data, "rail-chain-signal", 1, -4 +0.5, 4)
+			place_item(bpt, data, "rail-chain-signal", 1, -5 +0.5, 4)
 			place_item(bpt, data, "rail-signal", 1, data.int_locos * (locomotive_length + space_between_trains) + data.int_cargo * (cargo_length + space_between_trains) - 1, 4)
 		end
 	end
@@ -439,11 +491,14 @@ function build_blueprint(data)
 	if not data.bool_refuel then
 		start = locomotive_count * (locomotive_length + space_between_trains)
 	end
-	stop = (1 + temp_int_double_head) * locomotive_count * (locomotive_length + space_between_trains) + cargo_count * (cargo_length + space_between_trains) - 4
+	stop = (1 + temp_int_double_head) * locomotive_count * (locomotive_length + space_between_trains) + cargo_count * (cargo_length + space_between_trains)
 	temp_check1 = locomotive_count * (locomotive_length + space_between_trains)
 	temp_check2 = locomotive_count * (locomotive_length + space_between_trains) + cargo_count * (cargo_length + space_between_trains)
 	for i = start, stop do
 		if i % 7 == 0 then
+			if data.bool_double_head and not data.bool_refuel and i > temp_check2 then
+				break
+			end
 			place_item(bpt, data, "medium-electric-pole", 2, i, 4, ycorrection)
 			place_item(bpt, data, "medium-electric-pole", -3, i, 4, ycorrection)
 			if data.bool_lamps then
@@ -451,34 +506,22 @@ function build_blueprint(data)
 				place_item(bpt, data, "small-lamp", -2, i, 4, ycorrection)
 			end
 		end
-		if i % 7 == 4 and (i < temp_check1 or (data.bool_refuel and i > temp_check2)) and data.bool_refuel then
-			place_item(bpt, data, chosen_inserter, 1, i , 2, ycorrection)
-			bpt[#bpt+1] = {
-				entity_number = #bpt+1,
-				name = "logistic-chest-requester",
-				position = {x=2 + 0.5, y=i + 0.5 + ycorrection},
-				request_filters = {
-					{
-						index = 1,
-						name = "solid-fuel",
-						count = data.int_refuel_request_amount
-					}
-				}}
+		if i % 7 == 4 and (i < temp_check1 or (data.bool_refuel and i > temp_check2)) then
+			if data.bool_refuel then
+				place_item(bpt, data, chosen_inserter, 1, i , 2, ycorrection)
+				bpt[#bpt+1] = {
+					entity_number = #bpt+1,
+					name = "logistic-chest-requester",
+					position = {x=2 + 0.5, y=i + 0.5 + ycorrection},
+					request_filters = {
+						{
+							index = 1,
+							name = "solid-fuel",
+							count = data.int_refuel_request_amount
+						}
+					}}
+				end
 		end
-	end
-	if data.bool_double_head and data.bool_refuel then
-		place_item(bpt, data, chosen_inserter, 1, stop , 2, ycorrection)
-		bpt[#bpt+1] = {
-			entity_number = #bpt+1,
-			name = "logistic-chest-requester",
-			position = {x=2 + 0.5, y=stop + 0.5 + ycorrection},
-			request_filters = {
-				{
-					index = 1,
-					name = "solid-fuel",
-					count = data.int_refuel_request_amount
-				}
-			}}
 	end
 
 	--place inserters, chests, and initial belts + splitters
@@ -500,14 +543,14 @@ function build_blueprint(data)
 					if data.int_chest_type < 3 then
 						-- if chests arent logistic chests, then use the next row of inserters
 						place_row_of_items(bpt, data, chosen_inserter, 3, i+1, i+6, tempDirection, ycorrection)
-						if data.bool_evenly_load then
+						if data.bool_evenly_load and data.str_resource_type ~= "none" then
 							add_madzuri_wire_setup(bpt, data, "arithmetic-combinator", 4, i, 2, ycorrection)
 						end
 					end
 					place_row_of_items(bpt, data, chosen_chest, -3, i+1, i+6, 6, ycorrection)
 					if data.int_chest_type < 3 then
 						place_row_of_items(bpt, data, chosen_inserter, -4, i+1, i+6, (tempDirection + 4) % 8, ycorrection)
-						if data.bool_evenly_load then
+						if data.bool_evenly_load and data.str_resource_type ~= "none" then
 							add_madzuri_wire_setup(bpt, data, "arithmetic-combinator", -4, i, 2, ycorrection)
 						end
 					end
@@ -532,6 +575,25 @@ function build_blueprint(data)
 				place_item(bpt, data, chosen_splitter, 3 + usingChest, i + ycorrection - 0.5, splitter_direction)
 				place_item(bpt, data, chosen_splitter, -4 - usingChest, i + ycorrection - 0.5, (splitter_direction + 4) % 8)
 			end
+		end
+	end
+
+	--add green wire to all the chests if checkbox has ticked
+	if data.bool_connect_chests and data.bool_use_chest then
+		chests_left_side = {}
+		chests_right_side = {}
+		for i = 1, #bpt do
+			if bpt[i].name == chosen_chest then
+				if bpt[i].position.x < 0 then
+					chests_left_side[#chests_left_side+1] = bpt[i].entity_number
+				else
+					chests_right_side[#chests_right_side+1] = bpt[i].entity_number
+				end
+			end
+		end
+		for i = 2, #chests_left_side do
+			bpt[chests_left_side[i]].connections={{green={{entity_id=chests_left_side[i-1]}}}}
+			bpt[chests_right_side[i]].connections={{green={{entity_id=chests_right_side[i-1]}}}}
 		end
 	end
 
@@ -640,22 +702,38 @@ script.on_event(defines.events.on_research_finished, function(event)
 	end
 end)
 
+-- get the itemname of the item in mouse cursor and clears mouse cursor
+function get_itemname_of_cursor(player) --new function since v0.0.5
+	if player.cursor_stack.valid_for_read and player.cursor_stack or false then
+		returnName = player.cursor_stack.name
+	else
+		return "none"
+	end
+	--player.cursor_stack.clear()
+	return returnName
+end
+
 --check for empty blueprint in mouse cursor
 function holding_empty_blueprint(player)
 	return (player.cursor_stack.valid_for_read and not player.cursor_stack.is_blueprint_setup() and player.cursor_stack.type == "blueprint")
 end
 
 --not used function
-function holding_blueprint(player)
+--[[function holding_blueprint(player)
 	return (player.cursor_stack.valid_for_read and player.cursor_stack.type == "blueprint")
-end
+end--]]
 
 --when a button of the GUI has been pressed obviously D: damn unnecessary comments!
 local function on_gui_click(event)
 	local player = game.players[event.player_index]
 	local frame = game.players[event.player_index].gui.left[frame_menu]
 	if event.element.name ~= btn_menu and frame then
-		data = readGUIdata(frame)
+		data = readGUIdata(player, frame)
+		if data == "versionMismatch" then
+			player.print("BurnysTSBC: New version detected, resetting mod data")
+			frame.destroy()
+			return nil
+		end
 		global["BurnysTSBC"] = global["BurnysTSBC"] or {}
 		global["BurnysTSBC"][player] = data
 
@@ -672,7 +750,11 @@ local function on_gui_click(event)
 			--spr_inserter_type.destroy()
 			--spr_inserter_type = frame.flow_inserter_type.add{type="sprite", --sprite="item/"..frame.flow_inserter_type.btn_inserter_type.caption}
 		elseif event.element.name == btn_resource_type then
-			data.int_resource_type = data.int_resource_type % #resource_types + 1
+			--data.int_resource_type = data.int_resource_type % #resource_types + 1 --obsolete since v0.0.2
+			data.str_resource_type = get_itemname_of_cursor(player)
+			if data.str_resource_type == "none" then
+				data.str_error_message = "Hold an item while clicking the filter button!"
+			end
 			set_global_variables(player, data)
 			frame.destroy()
 			create_menu(player)
@@ -691,38 +773,34 @@ local function on_gui_click(event)
 			set_global_variables(player, data)
 		elseif event.element.name == btn_create_blueprint then
 			--correct the textboxes so they catch invalid entries
-			if tonumber(data.int_locos) ~= nil then
-				if tonumber(data.int_cargo) ~= nil then
-					if tonumber(data.int_refuel_request_amount) ~= nil then
-						if tonumber(data.int_locos) + tonumber(data.int_cargo) <= 1000 and data.int_direction == 1 or tonumber(data.int_locos) + tonumber(data.int_cargo) <= 100 then
-							if tonumber(data.int_chest_limit) ~= nil then
-								if flow_directions[data.int_direction] ~= "side" then
-									if holding_empty_blueprint(player) then
-										blueprint = build_blueprint(data)
-										player.cursor_stack.set_blueprint_entities(blueprint)
-										frame.flow_create.lbl_error_message.caption = "Success!"
-									else
-										frame.flow_create.lbl_error_message.caption = "No empty blueprint in mouse cursor!"
-									end
-								else
-									frame.flow_create.lbl_error_message.caption = "Sorry, side not yet implemented. Let me know if you want it!"
-								end
-							else
-								frame.flow_create.lbl_error_message.caption = "Invalid number of \"Chest limit\". Resetting value. Enter a number between -1 and 48!"
-							end
-						else
-							frame.flow_create.lbl_error_message.caption = "Oh god, please use less locomotives or cargo wagons!"
-						end
-					else
-						frame.flow_create.lbl_error_message.caption = "Invalid number for fuel-request amount. Resetting value."
-					end
-				else
-					frame.flow_create.lbl_error_message.caption = "Invalid number of cargo wagons. Resetting value."
-				end
-			else
-				frame.flow_create.lbl_error_message.caption = "Invalid number of locomotives. Resetting value."
+			data.str_error_message = "Success!"
+			if tonumber(data.int_locos) == nil then
+				data.str_error_message = "Invalid number of locomotives. Resetting value."
 			end
-			data.str_error_message = frame.flow_create.lbl_error_message.caption
+			if tonumber(data.int_cargo) == nil then
+				data.str_error_message = "Invalid number of cargo wagons. Resetting value."
+			end
+			if data.str_error_message == "Success!" then
+				if tonumber(data.int_locos) + tonumber(data.int_cargo) < -500 or tonumber(data.int_locos) + tonumber(data.int_cargo) > 1000  then
+					data.str_error_message = "Oh god, please use less locomotives or cargo wagons!"
+				end
+			end
+			if tonumber(data.int_chest_limit) == nil then
+				data.str_error_message = "Invalid number of \"Chest limit\". Resetting value. Enter a number between -1 and 48!"
+			end
+			if tonumber(data.int_refuel_request_amount) == nil then
+				data.str_error_message = "Invalid number for fuel-request amount. Resetting value."
+			end
+			if data.bool_connect_chests and data.bool_evenly_load then
+				data.str_error_message = "Can't use \"load evenly\" and \"connect all chests\" together."
+			end
+			if not holding_empty_blueprint(player) then
+				data.str_error_message = "No empty blueprint in mouse cursor!"
+			end
+			if data.str_error_message == "Success!" then
+				blueprint = build_blueprint(data)
+				player.cursor_stack.set_blueprint_entities(blueprint)
+			end
 			set_global_variables(player, data)
 			frame.destroy()
 			create_menu(player)
@@ -732,7 +810,12 @@ local function on_gui_click(event)
 		local player = game.players[event.player_index]
 		local frame = player.gui.left[frame_menu]
 		if (frame) then
-			data = readGUIdata(frame)
+			data = readGUIdata(player, frame)
+			if data == "versionMismatch" then
+				player.print("BurnysTSBC: New version detected, resetting mod data")
+				frame.destroy()
+				return nil
+			end
 			set_global_variables(player, data)
 			frame.destroy()
 		else
