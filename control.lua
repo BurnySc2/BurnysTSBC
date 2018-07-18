@@ -183,7 +183,7 @@ local function create_menu(player)
 
 	frame.add{type="flow", name="flow_fuel_request_amount", direction="horizontal"}
 	frame.flow_fuel_request_amount.add{type="checkbox", name=chk_refuel, state=data.bool_refuel, caption="refill at this station?", tooltip="Places one requester chest with the chosen inserter type next to each locomotive."}
-	frame.flow_fuel_request_amount.add{type="textfield", name=txt_fuel_request_amount, text=tostring(data.int_refuel_request_amount), tooltip="How much solid fuel should be requested per requester chest next to each lokomotive?"}
+	frame.flow_fuel_request_amount.add{type="textfield", name=txt_fuel_request_amount, text=tostring(data.int_refuel_request_amount), tooltip="How much solid fuel should be requested per requester chest next to each locomotive?"}
 
 	frame.add{type="checkbox", name=chk_evenly_load, state=data.bool_evenly_load, caption="load/unload chests evenly?", tooltip="This option makes use of MadZuri's smart loading/unloading trick with combintators and wires."}
 	frame.add{type="checkbox", name=chk_signals, state=data.bool_signals, caption="place signals next to station?", tooltip="If double headed train is used, two signals are placed near the rear of the train. If single headed train is used, one signal will be placed at the rear and one in the front."}
@@ -441,7 +441,7 @@ function build_blueprint(data)
 	end
 	stop = (1 + temp_int_double_head) * locomotive_count * (locomotive_length + space_between_trains) + cargo_count * (cargo_length + space_between_trains) - 4
 	temp_check1 = locomotive_count * (locomotive_length + space_between_trains)
-	temp_check2 = stop - temp_check1
+	temp_check2 = locomotive_count * (locomotive_length + space_between_trains) + cargo_count * (cargo_length + space_between_trains)
 	for i = start, stop do
 		if i % 7 == 0 then
 			place_item(bpt, data, "medium-electric-pole", 2, i, 4, ycorrection)
@@ -451,7 +451,7 @@ function build_blueprint(data)
 				place_item(bpt, data, "small-lamp", -2, i, 4, ycorrection)
 			end
 		end
-		if i % 7 == 4 and (i < temp_check1 or i > temp_check2) and data.bool_refuel then
+		if i % 7 == 4 and (i < temp_check1 or (data.bool_refuel and i > temp_check2)) and data.bool_refuel then
 			place_item(bpt, data, chosen_inserter, 1, i , 2, ycorrection)
 			bpt[#bpt+1] = {
 				entity_number = #bpt+1,
