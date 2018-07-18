@@ -12,7 +12,7 @@ assigning sprites to variables somehow broke it
 the technology for blueprints is gone, so i changed it to requirement "construction robots" tech
 ]]--
 
-local str_versionCheck = "0.1.0"
+local str_versionCheck = "0.1.2"
 
 local btn_menu = "btn_menu"
 local btn_menu2 = "btn_menu2"
@@ -46,7 +46,6 @@ local txt_stacker_lanes = "txt_stacker_lanes"
 local chk_stacker_is_diagonal = "chk_stacker_is_diagonal"
 local chk_stacker_is_left_right = "chk_stacker_is_left_right"
 
-
 --tables for "lookups"
 local station_types = {"loading","unloading", "fluid loading", "fluid unloading", "stacker"}--,"refuel"}
 local non_fluid_station_types = {"loading", "unloading"}
@@ -58,6 +57,23 @@ local sides = {"both", "right", "left"}
 local fluidSides = {"right", "left"}
 local flow_directions = {"none","front","back"}--,"side"}
 local fuel_types = {"raw-wood", "coal", "solid-fuel", "rocket-fuel", "uranium-fuel-cell"}
+
+
+--added in version 0.1.2
+--my attempt to solve the problem of "Error while running deserialisation.... too many local variables (limit is 200) in main function near '='"
+--resetting metatable shamelessly copy pasted from FARL to fix the "200 local variable error"
+
+-- local function resetMetatable(o, mt)
+--     setmetatable(o,{__index=mt})
+--     return o
+-- end
+
+-- local function setMetatables()
+-- 	for i, tsbc in pairs(global["BurnysTSBC"]) do
+-- 		global["BurnysTSBC"][i] = resetMetatable(tsbc, nil)
+-- 	end
+-- end
+
 
 --setting initial data of players, if player is using the mod for the first time then default settings will be applied
 function set_global_variables(player, data)
@@ -648,7 +664,6 @@ function build_blueprint(data)
 
 	--creating the new and empty blueprint table
 	bpt = {}
-	--bpt["name" ] = "yolo"
 
 	--dont ask me how i got those numbers for positions and directions for curved rails, normal rails and signals :(
 	if station_type == "stacker" then
@@ -728,8 +743,6 @@ function build_blueprint(data)
 		else
 			rails_needed = math.ceil((length * 7 - 1)/2) --excluding the curve
 
-			--TODO non-diagonal stackers
-
 			if data.bool_stacker_is_left_right then
 				--places the front 4 rails and the curve, together with chain signal
 				place_item(bpt, data, "straight-rail", 4 + 5.5, -4 - 8.5, 7)
@@ -760,22 +773,6 @@ function build_blueprint(data)
 						bpt[#bpt+1] = {entity_number=#bpt+1, name=thisItem.name, position={x=thisItem.position.x - 4, y=thisItem.position.y + 4}, direction=thisItem.direction}
 					end
 				end
-
-				--[[
-				rail_x_correction = -1.5
-				rail_y_correction = -1.5
-				--full circle rails
-				place_item(bpt, data, "curved-rail", 10 + rail_x_correction, -4 + rail_y_correction, 0) --bottom to top left
-				place_item(bpt, data, "curved-rail", -10 + rail_x_correction, -4 + rail_y_correction, 1) -- bottom to top right
-				place_item(bpt, data, "curved-rail", -10 + rail_x_correction, 4 + rail_y_correction, 4) -- top to bottom right
-				place_item(bpt, data, "curved-rail", 10 + rail_x_correction, 4 + rail_y_correction, 5) -- top to bottom left
-				place_item(bpt, data, "curved-rail", 4 + rail_x_correction, 10 + rail_y_correction, 2) -- left to bottom right
-				place_item(bpt, data, "curved-rail", 4 + rail_x_correction, -10 + rail_y_correction, 3) -- left to top right
-				place_item(bpt, data, "curved-rail", -4 + rail_x_correction, -10 + rail_y_correction, 6) -- right to bottom left
-				place_item(bpt, data, "curved-rail", -4 + rail_x_correction, 10 + rail_y_correction, 7) -- right to top left
-				place_item(bpt, data, "straight-rail", 7 + rail_x_correction, -7 + rail_y_correction, 1)
-				--]]
-
 			else
 				--places the front 4 rails and the curve, together with chain signal
 
@@ -808,44 +805,10 @@ function build_blueprint(data)
 						bpt[#bpt+1] = {entity_number=#bpt+1, name=thisItem.name, position={x=thisItem.position.x + 4, y=thisItem.position.y + 4}, direction=thisItem.direction}
 					end
 				end
-
-				--[[
-				--places the front 4 rails and the curve, together with chain signal
-				place_item(bpt, data, "straight-rail", 4 + 5.5, -4 - 8.5, 7)
-				place_item(bpt, data, "straight-rail", 4 + 5.5, -4 - 10.5, 3)
-				place_item(bpt, data, "straight-rail", 4 + 3.5, -4 - 6.5, 7)
-				place_item(bpt, data, "straight-rail", 4 + 3.5, -4 - 8.5, 3)
-				place_item(bpt, data, "curved-rail", 4 + 0.5, -4 - 3.5, 1)
-				place_item(bpt, data, "rail-chain-signal", 4 + 1, -4 + 1, 4)
-
-				--places the rail signal at the back and the curve and the 4 more diagonal rails
-
-
-				place_item(bpt, data, "rail-signal", 4 + 1, 4 + 2 + 2*rails_needed, 4)
-				place_item(bpt, data, "curved-rail", 4 + 0.5, 4 - 1.5 + 2*rails_needed + 8, 4)
-				place_item(bpt, data, "straight-rail", 4 + 3.5, 4 - 8.5 + 2*rails_needed + 18, 5)
-				place_item(bpt, data, "straight-rail", 4 + 3.5, 4 - 6.5 + 2*rails_needed + 18, 1)
-				place_item(bpt, data, "straight-rail", 4 + 5.5, 4 - 6.5 + 2*rails_needed + 18, 5)
-				place_item(bpt, data, "straight-rail", 4 + 5.5, 4 - 4.5 + 2*rails_needed + 18, 1)
-
-				--places the long vertical rail
-				for y = 1, rails_needed + 1 do
-					place_item(bpt, data, "straight-rail", 4 - 0.5, 4 + y*2 - 0.5, 0, 0)
-				end
-
-				--create duplicates of the stacker above, but with slightly different position (moved down by 4)
-				count = #bpt
-				for lane = 2, lanes do
-					for item = 1, count do
-						thisItem = bpt[#bpt - count + 1]
-						bpt[#bpt+1] = {entity_number=#bpt+1, name=thisItem.name, position={x=thisItem.position.x - 4, y=thisItem.position.y + 4}, direction=thisItem.direction}
-					end
-				end--]]
 			end
 		end
 
-
-
+		-- return here already because this is about a stacker and so we dont have to do anything else
 		return bpt
 	end
 
@@ -1248,6 +1211,9 @@ script.on_init(function()
 	end
 end)
 
+local function on_load()
+end
+
 script.on_event(defines.events.on_research_finished, function(event)
 	for _, player in pairs(game.players) do
 		--set_global_variables(player, {})
@@ -1442,6 +1408,7 @@ local function on_gui_click(event)
 			if data == "versionMismatch" then
 				player.print("BurnysTSBC: New version detected, resetting mod data")
 				frame.destroy()
+				global["BurnysTSBC"] = nil
 				return nil
 			end
 			set_global_variables(player, data)
@@ -1454,3 +1421,4 @@ end
 
 script.on_event(defines.events.on_player_created, on_player_created)
 script.on_event(defines.events.on_gui_click, on_gui_click)
+script.on_load(on_load)
