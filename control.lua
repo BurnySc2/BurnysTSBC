@@ -11,7 +11,7 @@ Sadly not everyone will be satisfied, since I can only offer a few layouts / var
 --[[stuff that broke the mod in 0.15:
 ]]--
 
-local str_versionCheck = "0.0.6"
+local str_versionCheck = "0.0.7"
 
 local btn_menu = "btn_menu"
 local btn_menu2 = "btn_menu2"
@@ -252,6 +252,9 @@ local function readGUIdata(player, frame)
 		g["bool_use_chest"] = frame.chk_use_chests.state
 		g["int_chest_type"] = index(chest_types, frame.flow_chests.btn_chest_type.caption)
 		g["int_chest_limit"] = tonumber(frame.flow_chests_limit.txt_chest_limit.text)
+		--if g["int_chest_limit"] < 0 then
+			--g["int_chest_limit"] = 9999
+		--end
 		g["int_belt_type"] = index(belt_types, frame.flow_belt_type.btn_belt_type.caption)
 		g["int_direction"] = index(flow_directions, frame.flow_direction.btn_direction_belt.caption)
 		g["bool_refuel"] = frame.flow_fuel_request_amount.chk_refuel.state
@@ -347,6 +350,10 @@ function place_item(bpt, data, itemname, x1, y1, direction, yoffset)
 		comparatorr = ">"
 		control_constant = -3
 	end
+	prevValue = data.int_chest_limit
+	if data.int_chest_limit < 0 then
+		data.int_chest_limit = 9999
+	end
 	if data.str_resource_type ~= "none" then
 		bpt[#bpt+1] = {
 			entity_number = #bpt+1,
@@ -374,13 +381,33 @@ function place_item(bpt, data, itemname, x1, y1, direction, yoffset)
 			name=data.str_resource_type},
 			constant=control_constant, comparator=comparatorr}}}
 	else
+		--fix change that was introduced to 0.15
+		--i guess you cant overload items with non-used properties like "bar" which limits the inventory of a chest
+		--if used with a different item, it previously didnt matter, but since 0.15 it seems to matter
 		bpt[#bpt+1] = {
 			entity_number = #bpt+1,
 			name = itemname,
 			position = {x=x1 + 0.5, y=y1 + 0.5 + yoffset},
 			direction = direction,
 			bar = data.int_chest_limit,}
+		--[[ --was a test in 0.15, no longer needed
+		if index(chest_types, itemname) ~= -1 then
+			bpt[#bpt+1] = {
+				entity_number = #bpt+1,
+				name = itemname,
+				position = {x=x1 + 0.5, y=y1 + 0.5 + yoffset},
+				direction = direction,
+				bar = data.int_chest_limit,}
+		else
+			bpt[#bpt+1] = {
+				entity_number = #bpt+1,
+				name = itemname,
+				position = {x=x1 + 0.5, y=y1 + 0.5 + yoffset},
+				direction = direction,}
+		end
+		--]]
 	end
+	data.int_chest_limit = prevValue
 	return bpt
 end
 
@@ -414,6 +441,7 @@ function build_blueprint(data)
 		end
 	end
 	chosen_chest = chest_types[data.int_chest_type]
+
 
 	--up, left, right, down, or not used at all and then they will just go off to each side
 	front_direction = defines.direction.north
@@ -661,6 +689,10 @@ function build_blueprint(data)
 			end
 		end
 	end
+
+	--for _, player in pairs(game.players) do
+		--player.print(bpt[43].bar)
+	--end
 	return bpt
 end
 
