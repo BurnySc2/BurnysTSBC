@@ -1,3 +1,4 @@
+
 --[[
 =====BURNYS TRAIN STATION BLUEPRINT CREATOR=====
 
@@ -6,12 +7,12 @@ This mod is handy for situations where you don't want to spend 5-30 minutes on d
 Sadly not everyone will be satisfied, since I can only offer a few layouts / variants of stations layouts, since they had to be compatible with scaling (trains station designs for 1000 cargo wagons were possible).
 --]]
 
---gui element variable names
-
 --[[stuff that broke the mod in 0.15:
+assigning sprites to variables somehow broke it
+the technology for blueprints is gone, so i changed it to requirement "construction robots" tech
 ]]--
 
-local str_versionCheck = "0.0.7"
+local str_versionCheck = "0.0.8"
 
 local btn_menu = "btn_menu"
 local btn_menu2 = "btn_menu2"
@@ -28,8 +29,10 @@ local btn_chest_type = "btn_chest_type"
 local txt_chest_limit = "txt_chest_limit"
 local btn_belt_type = "btn_belt_type"
 local btn_direction_belt = "btn_direction_belt"
+local btn_sides = "btn_sides"
 local txt_fuel_request_amount = "txt_fuel_request_amount"
 local chk_refuel = "chk_refuel"
+local btn_fuel_type = "btn_fuel_type"
 local chk_evenly_load = "chk_evenly_load"
 local chk_connect_chests = "chk_connect_chests"
 local chk_signals = "chk_signals"
@@ -44,9 +47,11 @@ local inserter_types = {"inserter","fast-inserter","stack-inserter"}
 --local resource_types = {"iron-ore","copper-ore","stone","coal","iron-plate","copper-plate","steel-plate","empty-barrel","crude-oil-barrel","iron-gear-wheel","copper-cable","electronic-circuit","advanced-circuit"}
 local chest_types = {"iron-chest","steel-chest","logistic-chest-requester","logistic-chest-passive-provider","logistic-chest-active-provider","logistic-chest-storage"}
 local belt_types = {"transport-belt", "fast-transport-belt", "express-transport-belt"}
+local sides = {"both", "right", "left"}
 local flow_directions = {"none","front","back"}--,"side"}
+local fuel_types = {"raw-wood", "coal", "solid-fuel", "rocket-fuel", "uranium-fuel-cell"}
 
---setting initial data of players
+--setting initial data of players, if player is using the mod for the first time then default settings will be applied
 function set_global_variables(player, data)
 	if global["BurnysTSBC"] then
 		if global["BurnysTSBC"][player.name] then
@@ -85,12 +90,14 @@ function set_global_variables(player, data)
 			global["BurnysTSBC"][player.name].int_chest_type = data.int_chest_type or 1
 			global["BurnysTSBC"][player.name].int_chest_limit = data.int_chest_limit or 5
 			global["BurnysTSBC"][player.name].int_belt_type = data.int_belt_type or 1
+			global["BurnysTSBC"][player.name].int_use_side = data.int_use_side or 1
 			global["BurnysTSBC"][player.name].int_direction = data.int_direction or 1
 
 			global["BurnysTSBC"][player.name].bool_refuel = false
 			if data.bool_refuel ~= nil then
 				global["BurnysTSBC"][player.name].bool_refuel = data.bool_refuel
 			end
+			global["BurnysTSBC"][player.name].int_refuel_type = data.int_refuel_type or 3
 			global["BurnysTSBC"][player.name].int_refuel_request_amount = data.int_refuel_request_amount or 20
 
 			global["BurnysTSBC"][player.name].bool_evenly_load = false
@@ -126,7 +133,7 @@ function set_global_variables(player, data)
 	end
 end
 
--- since lua didnt have a built in table-index functino, this figures out the index / position of a "value" in a "table" (starting with 1), returns -1 if not found
+-- since lua didnt have a built in table-index function, this figures out the index / position of a "value" in a "table" (starting with 1), returns -1 if not found
 local function index(table, value)
 	for i = 1, #table, 1 do
 		if table[i] == value then
@@ -148,7 +155,7 @@ local function tableToString(table)
 	return returnString
 end
 
---create the main mod-gui menu with all the buttons and stuffs
+--create the main mod-gui menu with all the buttons and text inputs and stuffs
 local function create_menu(player)
 	--/c game.player.insert{name="blueprint", count=100}
 	--player.print("helloo "..tostring(player))
@@ -161,15 +168,15 @@ local function create_menu(player)
 	end
 
 	frame = player.gui.left.add{type="frame", name=frame_menu, direction="vertical"}
-	frame.add{type="checkbox", name=chk_double_head, state=data.bool_double_head, caption="Locomotives at each end? (double headed?)", tooltip="Does your train have locomotives at both ends or only at one end?"}
+	frame.add{type="checkbox", name=chk_double_head, state=data.bool_double_head, caption="Locomotives at each end? (double headed?)", tooltip="Does your train have locomotive(s) at both ends or only at the front end?"}
 
 	frame.add{type="flow", name="flow_locos", direction="horizontal"}
 	frame.flow_locos.add{type="textfield", name=txt_locos, text=tostring(data.int_locos), tooltip="How many locomotives does your train have at EACH end? Divide the total number of locomotives in half if you are using double headed trains."}
-	frame.flow_locos.add{type="label", caption="# locomotives per end"}
+	frame.flow_locos.add{type="label", caption="# of locomotives per end"}
 
 	frame.add{type="flow", name="flow_cargos", direction="horizontal"}
 	frame.flow_cargos.add{type="textfield", name=txt_cargo, text=tostring(data.int_cargo), tooltip="How many cargo wagons does your train have?"}
-	frame.flow_cargos.add{type="label", caption="number of cargo wagons"}
+	frame.flow_cargos.add{type="label", caption="# of cargo wagons"}
 
 	frame.add{type="flow", name="flow_station_type", direction="horizontal"}
 	frame.flow_station_type.add{type="label", caption="Station type:"}
@@ -186,51 +193,59 @@ local function create_menu(player)
 	frame.flow_filter.add{type="label", caption="resource type:", tooltip="Enter the transported resource type here, even if you aren't using filter inserters. This setting is applied to requester chests or the \"load/unload chests evenly\" option, if ticked."}
 	--frame.flow_filter.add{type="button", name=btn_resource_type, caption=resource_types[data.int_resource_type], tooltip=tableToString(resource_types)}
 	--spr_resource_type = frame.flow_filter.add{type="sprite", name=spr_resource_type, sprite="item/"..resource_types[data.int_resource_type]}
-	frame.flow_filter.add{type="button", name=btn_resource_type, caption=data.str_resource_type, tooltip="Hold an item in your mouse cursor and click this button, and the filter will be set to it."}
+	frame.flow_filter.add{type="button", name=btn_resource_type, caption=data.str_resource_type, tooltip="Hold an item in your mouse cursor and click this button, and the filter will be set to it. This way you don't accidently load copper-ore into a iron-ore train, or unload copper-ore into a iron-ore station.\n\nIf you are using \"load/unload chests evenly?\" then this item will be used for counting. If no item specified, then the total number of items in the chests will be used for counting."}
 	if data.str_resource_type ~= "none" then
 		--spr_resource_type = frame.flow_filter.add{type="sprite", name=spr_resource_type, sprite="item/"..data.str_resource_type}
 		frame.flow_filter.add{type="sprite", name=spr_resource_type, sprite="item/"..data.str_resource_type}
 	end
 
-	frame.add{type="checkbox", name=chk_use_chests, state=data.bool_use_chest, caption="use chests as buffer?"}
+	frame.add{type="checkbox", name=chk_use_chests, state=data.bool_use_chest, caption="use chests as buffer?", tooltip="Please don't uncheck this unless you are a masochist. Trains would be stuck on this station forever! :s"}
 
 	frame.add{type="flow", name="flow_chests", direction="horizontal"}
-	frame.flow_chests.add{type="label", caption="Chest type:"}
+	frame.flow_chests.add{type="label", caption="Chest type:", tooltip="If you use logistic chests, belts and splitters will automatically be removed so that you can build thin and compact stations!"}
 	frame.flow_chests.add{type="button", name=btn_chest_type, caption=chest_types[data.int_chest_type], tooltip=tableToString(chest_types)}
 	--spr_chest_type = frame.flow_chests.add{type="sprite", name=spr_chest_type, sprite="item/"..chest_types[data.int_chest_type]}
 	frame.flow_chests.add{type="sprite", name=spr_chest_type, sprite="item/"..chest_types[data.int_chest_type]}
 
 	frame.add{type="flow", name="flow_chests_limit", direction="horizontal"}
 	frame.flow_chests_limit.add{type="label", caption="Chest limit:"}
-	frame.flow_chests_limit.add{type="textfield", name=txt_chest_limit, text=tostring(data.int_chest_limit), tooltip="Type in -1 for no limit/restriction, or write in a number of how many slots are allowed to be filled up (stack limits: ore=50, plates=100, circuits=200)"}
+	frame.flow_chests_limit.add{type="textfield", name=txt_chest_limit, text=tostring(data.int_chest_limit), tooltip="Type in a negative number for no limit/restriction, or write in a number of how many slots are allowed to be filled up\nStack limits: ore=50, plates=100, circuits=200"}
 
 	frame.add{type="flow", name="flow_belt_type", direction="horizontal"}
-	frame.flow_belt_type.add{type="label", caption="Belt type:"}
+	frame.flow_belt_type.add{type="label", caption="Belt type:", tooltip="The splitter tech-equivalent will be automatically chosen."}
 	frame.flow_belt_type.add{type="button", name=btn_belt_type, caption=belt_types[data.int_belt_type], tooltip=tableToString(belt_types)}
 	--spr_belt_type = frame.flow_belt_type.add{type="sprite", name=spr_belt_type, sprite="item/"..belt_types[data.int_belt_type]}
 	frame.flow_belt_type.add{type="sprite", name=spr_belt_type, sprite="item/"..belt_types[data.int_belt_type]}
 
 	frame.add{type="flow", name="flow_direction", direction="horizontal"}
-	frame.flow_direction.add{type="label", caption="Belt direction:", tooltip="The mod will try to use splitters and belts in this direction."}
+	frame.flow_direction.add{type="label", caption="Belt direction:", tooltip="The mod sends belts towards this direction (back = train station entrance). If you choose \"none\" then no additional belts will be created except for the ones at the start."}
 	frame.flow_direction.add{type="button", name=btn_direction_belt, caption=flow_directions[data.int_direction], tooltip=tableToString(flow_directions)}
 
-	frame.add{type="flow", name="flow_fuel_request_amount", direction="horizontal"}
-	frame.flow_fuel_request_amount.add{type="checkbox", name=chk_refuel, state=data.bool_refuel, caption="refill at this station?", tooltip="Places one requester chest with the chosen inserter type next to each locomotive."}
-	frame.flow_fuel_request_amount.add{type="textfield", name=txt_fuel_request_amount, text=tostring(data.int_refuel_request_amount), tooltip="How much solid fuel should be requested per requester chest next to each locomotive?"}
+	frame.add{type="flow", name="flow_side", direction="horizontal"}
+	frame.flow_side.add{type="label", caption="Sides to be used:", tooltip="Choose \"right\" and items will be placed only on the right side of the station. Choose \"both\" for highest load/unload throughput."}
+	frame.flow_side.add{type="button", name=btn_sides, caption=sides[data.int_use_side], tooltip=tableToString(sides)}
 
-	frame.add{type="checkbox", name=chk_evenly_load, state=data.bool_evenly_load, caption="load/unload chests evenly?", tooltip="This option makes use of MadZuri's smart loading/unloading trick with combintators and wires."}
-	frame.add{type="checkbox", name=chk_connect_chests, state=data.bool_connect_chests, caption="connect all chests with green wire?", tooltip="Will connect all chests of each side with green wire. You will have to do one more connection from left to right side, so the circuit network will count the number of items all chests contain."}
-	frame.add{type="checkbox", name=chk_signals, state=data.bool_signals, caption="place signals next to station?", tooltip="If double headed train is used, two signals are placed near the rear of the train. If single headed train is used, one signal will be placed at the rear and one in the front."}
-	frame.add{type="checkbox", name=chk_lamps, state=data.bool_lamps, caption="place lamps near poles?"}
+	frame.add{type="flow", name="flow_fuel_request_amount", direction="horizontal"}
+	frame.flow_fuel_request_amount.add{type="checkbox", name=chk_refuel, state=data.bool_refuel, caption="refill at this station?", tooltip="Places one requester chest with inserter next to each locomotive."}
+	frame.flow_fuel_request_amount.add{type="textfield", name=txt_fuel_request_amount, text=tostring(data.int_refuel_request_amount), tooltip="How much fuel should be requested per requester chest next to each locomotive?"}
+
+	frame.add{type="flow", name="flow_fuel_type", direction="horizontal"}
+	frame.flow_fuel_type.add{type="label", caption="Fuel type:", tooltip="If using \"refill at this station?\" then here you can choose which fuel type to be requested."}
+	frame.flow_fuel_type.add{type="button", name=btn_fuel_type, caption=fuel_types[data.int_refuel_type], tooltip=tableToString(fuel_types)}
+
+	frame.add{type="checkbox", name=chk_evenly_load, state=data.bool_evenly_load, caption="load/unload chests evenly?", tooltip="This option makes use of MadZuri's smart loading/unloading trick with combintators and wires. \nChoose a resource next to \"use filter inserters?\" to set the combinator-counting to the specific item. \nThis will NOT work together with logistic chests and is a belt-only feature."}
+	frame.add{type="checkbox", name=chk_connect_chests, state=data.bool_connect_chests, caption="connect all chests with green wire?", tooltip="Will connect all chests of each side with green wire. \nYou will have to do one more connection from left to right side, so the circuit network will count the number of items all chests contain. \nLeave a comment on the factorio mod website if you want this option for red wire too!"}
+	frame.add{type="checkbox", name=chk_signals, state=data.bool_signals, caption="place signals next to station?", tooltip="If double headed train is used, two signals are placed near the rear of the train as it is expected that this train will exit the station where it came in. \nIf single headed train is used, one normal signal will be placed at the rear and one chain signal in the front."}
+	frame.add{type="checkbox", name=chk_lamps, state=data.bool_lamps, caption="place lamps near poles?", tooltip="To brighten up the mood!"}
 
 	frame.add{type="flow", name="flow_create", direction="horizontal"}
-	frame.flow_create.add{type="button", name=btn_create_blueprint, caption="CREATE BLUEPRINT", tooltip="Hold an empty blueprint in your cursor (pick it up) and click this button, and the setup will be stored in the blueprint."}
+	frame.flow_create.add{type="button", name=btn_create_blueprint, caption="CREATE BLUEPRINT", tooltip="Hold an empty blueprint in your cursor (pick it up) and click this button, and the setup will be stored in the blueprint. \nIf any errors occur, it should show up next to the button. \nIf the game breaks, please leave a comment on the factorio mod website and I try to fix it as soon as I see the post!"}
 	frame.flow_create.add{type="label", name=lbl_error_message, caption=data.str_error_message}
 	return frame
 	--player.print("You clicked the button!")
 end
 
---reads data from the GUI and stores them into variables, so they can be processed by this mod
+--reads data from the GUI and stores them into variables, so they can be processed by this mod without having to read the GUI twice
 local function readGUIdata(player, frame)
 	if (frame) then
 		GUIdata = {}
@@ -257,8 +272,10 @@ local function readGUIdata(player, frame)
 		--end
 		g["int_belt_type"] = index(belt_types, frame.flow_belt_type.btn_belt_type.caption)
 		g["int_direction"] = index(flow_directions, frame.flow_direction.btn_direction_belt.caption)
+		g["int_use_side"] = index(sides, frame.flow_side.btn_sides.caption)
 		g["bool_refuel"] = frame.flow_fuel_request_amount.chk_refuel.state
 		g["int_refuel_request_amount"] = tonumber(frame.flow_fuel_request_amount.txt_fuel_request_amount.text)
+		g["int_refuel_type"] = index(fuel_types, frame.flow_fuel_type.btn_fuel_type.caption)
 		g["bool_evenly_load"] = frame.chk_evenly_load.state
 		g["bool_connect_chests"] = frame.chk_connect_chests.state
 		g["bool_signals"] = frame.chk_signals.state
@@ -309,6 +326,23 @@ function add_madzuri_wire_setup(bpt, data, itemname, x1, y1, direction, yoffset)
 				output_signal={type="item",
 				--name=resource_types[data.int_resource_type]}},--resource_types[data.int_resource_type]}
 				name=data.str_resource_type,}},
+			}}
+	else
+		bpt[#bpt+1] = {
+			entity_number = #bpt+1,
+			name = itemname,
+			position = {x=actualx1, y=y1 + 7 + 0.5 + yoffset},
+			direction = direction1,
+			connections={{green={{entity_id=#bpt-6, circuit_id = 1}}}},
+			control_behavior={arithmetic_conditions={first_signal={
+				type="virtual",
+				--name=resource_types[data.int_resource_type],},
+				name="signal-each",},
+				constant=-6,
+				operation="/",
+				output_signal={type="virtual",
+				--name=resource_types[data.int_resource_type]}},--resource_types[data.int_resource_type]}
+				name="signal-each",}},
 			}}
 	end
 
@@ -377,7 +411,6 @@ function place_item(bpt, data, itemname, x1, y1, direction, yoffset)
 				}
 			},
 			control_behavior={circuit_condition={first_signal={type="item",
-			--name=resource_types[data.int_resource_type]},
 			name=data.str_resource_type},
 			constant=control_constant, comparator=comparatorr}}}
 	else
@@ -389,30 +422,18 @@ function place_item(bpt, data, itemname, x1, y1, direction, yoffset)
 			name = itemname,
 			position = {x=x1 + 0.5, y=y1 + 0.5 + yoffset},
 			direction = direction,
-			bar = data.int_chest_limit,}
-		--[[ --was a test in 0.15, no longer needed
-		if index(chest_types, itemname) ~= -1 then
-			bpt[#bpt+1] = {
-				entity_number = #bpt+1,
-				name = itemname,
-				position = {x=x1 + 0.5, y=y1 + 0.5 + yoffset},
-				direction = direction,
-				bar = data.int_chest_limit,}
-		else
-			bpt[#bpt+1] = {
-				entity_number = #bpt+1,
-				name = itemname,
-				position = {x=x1 + 0.5, y=y1 + 0.5 + yoffset},
-				direction = direction,}
-		end
-		--]]
+			bar = data.int_chest_limit,
+			control_behavior={circuit_condition={first_signal={type="virtual",
+			name="signal-everything"},
+			constant=control_constant, comparator=comparatorr}}}
 	end
 	data.int_chest_limit = prevValue
 	return bpt
 end
 
 --for mass placing, inserters chests etc
-function place_row_of_items(bpt, data, itemname, x1, starty1, endy1, direction, yoffset) --bpt = blueprint table
+--args: the blueprint table, data table, which item to place, at which x coordinate and then loops from starty1 to endy1
+function place_row_of_items(bpt, data, itemname, x1, starty1, endy1, direction, yoffset)
 	for i=starty1, endy1 do
 		place_item(bpt, data, itemname, x1, i, direction, yoffset)
 	end
@@ -427,10 +448,10 @@ function build_blueprint(data)
 	rail_size = 2
 	train_stop_size = 2
 
-	--VARIABLES set by the player
+	--load the station type variable: load/unload
 	station_type = station_types[data.int_station_type]
 
-	--choose the item types
+	--choose the item types used to build blueprint: inserter type, filter inserter type, chest type
 	chosen_inserter = inserter_types[data.int_inserter_type]
 	chosen_filter_inserter = chosen_inserter
 	if data.bool_use_filter  then
@@ -449,14 +470,16 @@ function build_blueprint(data)
 	back_direction = (front_direction + 4) % 8
 	left_of_direction = (front_direction + 6) % 8
 
-
+	--set the belt directions for unloading / loading since they have to be the opposite direction
+	--aswell as in front / behind splitters, they also have to have a special direction
+	--these belts are the ones directly next to the inserters!!!
 	if station_types[data.int_station_type] == "unloading" then
 		--these values can be understood as they apply for items on the right side of the track (when the single headed train is facing north)
-		belt_direction1 = back_direction
-		belt_direction2 = right_of_direction
-		belt_direction3 = right_of_direction
-		belt_direction4 = front_direction
-		splitter_direction = right_of_direction
+		belt_direction1 = back_direction --belts for the first two inserters
+		belt_direction2 = right_of_direction --belts for inserter #3
+		belt_direction3 = right_of_direction --belts for inserter #4
+		belt_direction4 = front_direction --belts for inserter #5 and #6
+		splitter_direction = right_of_direction --splitter direction 2 tiles away from inserters
 		if data.bool_use_chest then
 			if data.int_chest_type == 3 then --just a smart preventing mechanic so that not accidently requester chests will be placed when unloading trains
 				chosen_chest = chest_types[4]
@@ -474,13 +497,18 @@ function build_blueprint(data)
 		if data.bool_use_chest then
 			if data.int_chest_type < 3 then
 				chosen_chest = chest_types[data.int_chest_type]
-			else --just a smart preventing mechanic so that not accidently provider / storage chests will be placed
+			else --just a smart preventing mechanic so that not accidently provider / storage chests will be placed when actually wanting to load the train and not unload it
 				chosen_chest = chest_types[3]
 			end
 		end
 	end
 
-	--creating the blueprint table
+	sideUsed = "both" --default value
+	leftSide = {"left", "both"} -- easier to have list to index from, like: if -1 ~= index(leftSide, sideUsed) then...
+	rightSide = {"right", "both"}
+	sideUsed = sides[data.int_use_side]
+
+	--creating the new and empty blueprint table
 	bpt = {}
 
 	--adding rails to the blueprint
@@ -502,10 +530,10 @@ function build_blueprint(data)
 
 	--create signals
 	if data.bool_signals then
-		if data.bool_double_head then
+		if data.bool_double_head then --if double headed train: will place two signals at the back because its expected that the train will leave where it came in
 			place_item(bpt, data, "rail-signal", 1, 2 * data.int_locos * (locomotive_length + space_between_trains) + data.int_cargo * (cargo_length + space_between_trains) - 1, 4)
 			place_item(bpt, data, "rail-chain-signal", -2, 2 * data.int_locos * (locomotive_length + space_between_trains) + data.int_cargo * (cargo_length + space_between_trains) - 1, 0)
-		else
+		else --if single headed train you need one signal at the back and one chain signal at the front
 			place_item(bpt, data, "rail-chain-signal", 1, -5 +0.5, 4)
 			place_item(bpt, data, "rail-signal", 1, data.int_locos * (locomotive_length + space_between_trains) + data.int_cargo * (cargo_length + space_between_trains) - 1, 4)
 		end
@@ -513,14 +541,14 @@ function build_blueprint(data)
 
 	ycorrection = -3 --had to add this because all items were moved 3 coordinates too far south (if the train stop is at the north side of blueprint)
 
-	--choose inserters, chests, belts, splitters
+	--choose inserters, belts, splitters, if we are using chests
 	chosen_belt = belt_types[data.int_belt_type]
 	splitter_types = {"splitter", "fast-splitter","express-splitter"}
 	chosen_splitter = splitter_types[data.int_belt_type]
 	limit_chests = data.int_chest_limit
 	usingChest = 0
 	if data.bool_use_chest then
-		usingChest = 2
+		usingChest = 2 --the offset variable, cause if we dont use chest as buffer then we want inserters to be 2 steps closer to the train
 	end
 	usedCoordinates = {}
 
@@ -532,20 +560,25 @@ function build_blueprint(data)
 	stop = (1 + temp_int_double_head) * locomotive_count * (locomotive_length + space_between_trains) + cargo_count * (cargo_length + space_between_trains)
 	temp_check1 = locomotive_count * (locomotive_length + space_between_trains)
 	temp_check2 = locomotive_count * (locomotive_length + space_between_trains) + cargo_count * (cargo_length + space_between_trains)
-	for i = start, stop do
+	for i = start, stop do --loop over the whole length of the train
 		if i % 7 == 0 then
 			if data.bool_double_head and not data.bool_refuel and i > temp_check2 then
-				break
+				break --stop when we are using double headed trains and no refuel, or else this would loop too far
 			end
-			place_item(bpt, data, "medium-electric-pole", 2, i, 4, ycorrection)
-			place_item(bpt, data, "medium-electric-pole", -3, i, 4, ycorrection)
+			if -1 ~= index(rightSide, sideUsed) then --place if "both" or "right" side is selected
+				place_item(bpt, data, "medium-electric-pole", 2, i, 4, ycorrection) end
+			if -1 ~= index(leftSide, sideUsed) then --place if "both" or "left" side is selected
+				place_item(bpt, data, "medium-electric-pole", -3, i, 4, ycorrection) end
 			if data.bool_lamps then
-				place_item(bpt, data, "small-lamp", 1, i, 4, ycorrection)
-				place_item(bpt, data, "small-lamp", -2, i, 4, ycorrection)
+				if -1 ~= index(rightSide, sideUsed) then --place if "both" or "right" side is selected
+					place_item(bpt, data, "small-lamp", 1, i, 4, ycorrection) end
+				if -1 ~= index(leftSide, sideUsed) then --place if "both" or "left" side is selected
+					place_item(bpt, data, "small-lamp", -2, i, 4, ycorrection) end
 			end
 		end
+		-- place refuel chest
 		if i % 7 == 4 and (i < temp_check1 or (data.bool_refuel and i > temp_check2)) then
-			if data.bool_refuel then
+			if data.bool_refuel and index(sides, sideUsed) ~= 3 then
 				place_item(bpt, data, chosen_inserter, 1, i , 2, ycorrection)
 				bpt[#bpt+1] = {
 					entity_number = #bpt+1,
@@ -554,11 +587,28 @@ function build_blueprint(data)
 					request_filters = {
 						{
 							index = 1,
-							name = "solid-fuel",
+							--added in v0.0.8
+							name = fuel_types[data.int_refuel_type],
+							--name = "solid-fuel",
 							count = data.int_refuel_request_amount
 						}
 					}}
-				end
+			else -- place refuel chest on left side
+				place_item(bpt, data, chosen_inserter, -2, i , 6, ycorrection)
+				bpt[#bpt+1] = {
+					entity_number = #bpt+1,
+					name = "logistic-chest-requester",
+					position = {x=-3 + 0.5, y=i + 0.5 + ycorrection},
+					request_filters = {
+						{
+							index = 1,
+							--added in v0.0.8
+							name = fuel_types[data.int_refuel_type],
+							--name = "solid-fuel",
+							count = data.int_refuel_request_amount
+						}
+					}}
+			end
 		end
 	end
 
@@ -573,23 +623,29 @@ function build_blueprint(data)
 					tempDirection = 2
 				end
 				-- place the first row of inserters
-				place_row_of_items(bpt, data, chosen_filter_inserter, 1, i+1, i+6, tempDirection, ycorrection)
-				place_row_of_items(bpt, data, chosen_filter_inserter, -2, i+1, i+6, (tempDirection + 4) % 8, ycorrection)
+					if -1 ~= index(rightSide, sideUsed) then --place if "both" or "right" side is selected
+						place_row_of_items(bpt, data, chosen_filter_inserter, 1, i+1, i+6, tempDirection, ycorrection) end
+					if -1 ~= index(leftSide, sideUsed) then --place if "both" or "left" side is selected
+						place_row_of_items(bpt, data, chosen_filter_inserter, -2, i+1, i+6, (tempDirection + 4) % 8, ycorrection) end
 				-- place chests if wanted
 				if data.bool_use_chest then
-					place_row_of_items(bpt, data, chosen_chest, 2, i+1, i+6, 2, ycorrection)
-					if data.int_chest_type < 3 then
-						-- if chests arent logistic chests, then use the next row of inserters
-						place_row_of_items(bpt, data, chosen_inserter, 3, i+1, i+6, tempDirection, ycorrection)
-						if data.bool_evenly_load and data.str_resource_type ~= "none" then
-							add_madzuri_wire_setup(bpt, data, "arithmetic-combinator", 4, i, 2, ycorrection)
+					if -1 ~= index(rightSide, sideUsed) then --place if "both" or "right" side is selected
+						place_row_of_items(bpt, data, chosen_chest, 2, i+1, i+6, 2, ycorrection)
+						if data.int_chest_type < 3 then
+							-- if chests arent logistic chests, then use the next row of inserters
+							place_row_of_items(bpt, data, chosen_inserter, 3, i+1, i+6, tempDirection, ycorrection)
+							if data.bool_evenly_load then
+								add_madzuri_wire_setup(bpt, data, "arithmetic-combinator", 4, i, 2, ycorrection)
+							end
 						end
 					end
-					place_row_of_items(bpt, data, chosen_chest, -3, i+1, i+6, 6, ycorrection)
-					if data.int_chest_type < 3 then
-						place_row_of_items(bpt, data, chosen_inserter, -4, i+1, i+6, (tempDirection + 4) % 8, ycorrection)
-						if data.bool_evenly_load and data.str_resource_type ~= "none" then
-							add_madzuri_wire_setup(bpt, data, "arithmetic-combinator", -4, i, 2, ycorrection)
+					if -1 ~= index(leftSide, sideUsed) then --place if "both" or "left" side is selected
+						place_row_of_items(bpt, data, chosen_chest, -3, i+1, i+6, 6, ycorrection)
+						if data.int_chest_type < 3 then
+							place_row_of_items(bpt, data, chosen_inserter, -4, i+1, i+6, (tempDirection + 4) % 8, ycorrection)
+							if data.bool_evenly_load then
+								add_madzuri_wire_setup(bpt, data, "arithmetic-combinator", -4, i, 2, ycorrection)
+							end
 						end
 					end
 				end
@@ -599,19 +655,27 @@ function build_blueprint(data)
 		-- place initial belts and splitters
 		if data.int_chest_type < 3 then
 			if i % (cargo_length + space_between_trains) > 4 then
-				place_item(bpt, data, chosen_belt, 2 + usingChest, i + ycorrection, belt_direction4)
-				place_item(bpt, data, chosen_belt, -3 - usingChest, i + ycorrection, belt_direction4)
+				if -1 ~= index(rightSide, sideUsed) then --place if "both" or "right" side is selected
+					place_item(bpt, data, chosen_belt, 2 + usingChest, i + ycorrection, belt_direction4) end
+				if -1 ~= index(leftSide, sideUsed) then --place if "both" or "left" side is selected
+					place_item(bpt, data, chosen_belt, -3 - usingChest, i + ycorrection, belt_direction4) end
 			elseif i % (cargo_length + space_between_trains) < 3 and i % (cargo_length + space_between_trains) ~= 0 then
-				place_item(bpt, data, chosen_belt, 2 + usingChest, i + ycorrection, belt_direction1)
-				place_item(bpt, data, chosen_belt, -3 - usingChest, i + ycorrection, belt_direction1)
+				if -1 ~= index(rightSide, sideUsed) then --place if "both" or "right" side is selected
+					place_item(bpt, data, chosen_belt, 2 + usingChest, i + ycorrection, belt_direction1) end
+				if -1 ~= index(leftSide, sideUsed) then --place if "both" or "left" side is selected
+					place_item(bpt, data, chosen_belt, -3 - usingChest, i + ycorrection, belt_direction1) end
 			elseif i % (cargo_length + space_between_trains) == 3 then
-				place_item(bpt, data, chosen_belt, 2 + usingChest, i + ycorrection, belt_direction2)
-				place_item(bpt, data, chosen_belt, -3 - usingChest, i + ycorrection, (belt_direction2 * 3) % 8)
+				if -1 ~= index(rightSide, sideUsed) then --place if "both" or "right" side is selected
+					place_item(bpt, data, chosen_belt, 2 + usingChest, i + ycorrection, belt_direction2) end
+				if -1 ~= index(leftSide, sideUsed) then --place if "both" or "left" side is selected
+					place_item(bpt, data, chosen_belt, -3 - usingChest, i + ycorrection, (belt_direction2 * 3) % 8) end
 			elseif i % (cargo_length + space_between_trains) == 4 then
-				place_item(bpt, data, chosen_belt, 2 + usingChest, i + ycorrection, belt_direction3)
-				place_item(bpt, data, chosen_belt, -3 - usingChest, i + ycorrection, (belt_direction3 * 3) % 8)
-				place_item(bpt, data, chosen_splitter, 3 + usingChest, i + ycorrection - 0.5, splitter_direction)
-				place_item(bpt, data, chosen_splitter, -4 - usingChest, i + ycorrection - 0.5, (splitter_direction + 4) % 8)
+				if -1 ~= index(rightSide, sideUsed) then --place if "both" or "right" side is selected
+					place_item(bpt, data, chosen_belt, 2 + usingChest, i + ycorrection, belt_direction3)
+					place_item(bpt, data, chosen_splitter, 3 + usingChest, i + ycorrection - 0.5, splitter_direction) end
+				if -1 ~= index(leftSide, sideUsed) then --place if "both" or "left" side is selected
+					place_item(bpt, data, chosen_belt, -3 - usingChest, i + ycorrection, (belt_direction3 * 3) % 8)
+					place_item(bpt, data, chosen_splitter, -4 - usingChest, i + ycorrection - 0.5, (splitter_direction + 4) % 8) end
 			end
 		end
 	end
@@ -668,23 +732,31 @@ function build_blueprint(data)
 		if flow_directions[data.int_direction] == "front" then
 			for i1 = 0, data.int_cargo do
 				for i2 = startHorizontal, i1 + stopHorizontal - 1 do
-					place_item(bpt, data, chosen_belt, 4 + usingChest + i2, offsetVertical + 7*(i1  + data.int_locos - 1), belt_direction1, ycorrection)
-					place_item(bpt, data, chosen_belt, -5 - usingChest - i2, offsetVertical + 7*(i1  + data.int_locos - 1), (belt_direction1 + 4) % 8, ycorrection)
+					if -1 ~= index(rightSide, sideUsed) then --place if "both" or "right" side is selected
+						place_item(bpt, data, chosen_belt, 4 + usingChest + i2, offsetVertical + 7*(i1  + data.int_locos - 1), belt_direction1, ycorrection) end
+					if -1 ~= index(leftSide, sideUsed) then --place if "both" or "left" side is selected
+						place_item(bpt, data, chosen_belt, -5 - usingChest - i2, offsetVertical + 7*(i1  + data.int_locos - 1), (belt_direction1 + 4) % 8, ycorrection) end
 				end
 				for i2 = startVertical, stopVertical + 7*i1 do
-					place_item(bpt, data, chosen_belt, 4 + usingChest + i1 - 1, offsetVertical + i2 + ycorrection + data.int_locos - 1, belt_direction2)
-					place_item(bpt, data, chosen_belt, -5 - usingChest - i1 + 1, offsetVertical + i2 + ycorrection + data.int_locos - 1, belt_direction2)
+					if -1 ~= index(rightSide, sideUsed) then --place if "both" or "right" side is selected
+						place_item(bpt, data, chosen_belt, 4 + usingChest + i1 - 1, offsetVertical + i2 + ycorrection + data.int_locos - 1, belt_direction2) end
+					if -1 ~= index(leftSide, sideUsed) then --place if "both" or "left" side is selected
+						place_item(bpt, data, chosen_belt, -5 - usingChest - i1 + 1, offsetVertical + i2 + ycorrection + data.int_locos - 1, belt_direction2) end
 				end
 			end
 		elseif flow_directions[data.int_direction] == "back" then
 			for i1 = 0, data.int_cargo do
 				for i2 = i1 + stopHorizontal - 1, startHorizontal, -1 do
-					place_item(bpt, data, chosen_belt, 4 + usingChest + i2, offsetVertical + 7*(data.int_cargo - i1 + data.int_locos - 1) , belt_direction1, ycorrection)
-					place_item(bpt, data, chosen_belt, -5 - usingChest - i2, offsetVertical + 7*(data.int_cargo - i1 + data.int_locos - 1) , (belt_direction1 + 4) % 8, ycorrection)
+					if -1 ~= index(rightSide, sideUsed) then --place if "both" or "right" side is selected
+						place_item(bpt, data, chosen_belt, 4 + usingChest + i2, offsetVertical + 7*(data.int_cargo - i1 + data.int_locos - 1) , belt_direction1, ycorrection) end
+					if -1 ~= index(leftSide, sideUsed) then --place if "both" or "left" side is selected
+						place_item(bpt, data, chosen_belt, -5 - usingChest - i2, offsetVertical + 7*(data.int_cargo - i1 + data.int_locos - 1) , (belt_direction1 + 4) % 8, ycorrection) end
 				end
 				for i2 = stopVertical + 7*i1, startVertical, -1 do
-					place_item(bpt, data, chosen_belt, 4 + usingChest + i1 - 1, 7*(data.int_cargo - i1 - 2 + data.int_locos) + offsetVertical + i2 + ycorrection, belt_direction2)
-					place_item(bpt, data, chosen_belt, -5 - usingChest - i1 + 1, 7*(data.int_cargo - i1 - 2 + data.int_locos) + offsetVertical + i2 + ycorrection, belt_direction2)
+					if -1 ~= index(rightSide, sideUsed) then --place if "both" or "right" side is selected
+						place_item(bpt, data, chosen_belt, 4 + usingChest + i1 - 1, 7*(data.int_cargo - i1 - 2 + data.int_locos) + offsetVertical + i2 + ycorrection, belt_direction2) end
+					if -1 ~= index(leftSide, sideUsed) then --place if "both" or "left" side is selected
+						place_item(bpt, data, chosen_belt, -5 - usingChest - i1 + 1, 7*(data.int_cargo - i1 - 2 + data.int_locos) + offsetVertical + i2 + ycorrection, belt_direction2) end
 				end
 			end
 		end
@@ -714,7 +786,7 @@ local function on_player_created(event)
 	if (player.force.technologies["construction-robotics"].researched) then
 		--if true then
 		if not player.gui.top[btn_menu] then
-			player.gui.top.add{type = "button", name=btn_menu, caption = "TSBC", tooltip = "Burny's Train Station Blueprint Creator"}
+			player.gui.top.add{type = "button", name=btn_menu, caption = "B", tooltip = "Burny's Train Station Blueprint Creator"}
 		end
 	end
 end
@@ -728,9 +800,9 @@ script.on_init(function()
 		set_global_variables(player, {})
 		--player.print("onInit: button created for "..tostring(player.name))
 		--if (player.force.technologies["automated-construction"].researched) then
-		if (player.force.technologies["construction-robotics"].researched) then
+		if (player.force.technologies["construction-robotics"].researched)  then
 			if not player.gui.top[btn_menu] then
-				player.gui.top.add{type = "button", name=btn_menu, caption = "TSBC", tooltip = "Burny's Train Station Blueprint Creator"}
+				player.gui.top.add{type = "button", name=btn_menu, caption = "B", tooltip = "Burny's Train Station Blueprint Creator"}
 			end
 		end
 	end
@@ -742,8 +814,12 @@ script.on_event(defines.events.on_research_finished, function(event)
 		--player.print("onResearchFinished: button created "..tostring(player.name))
 		if (player.force.technologies["construction-robotics"].researched) then
 			if not player.gui.top[btn_menu] then
-				player.gui.top.add{type = "button", name=btn_menu, caption = "TSBC", tooltip = "Burny's Train Station Blueprint Creator"}
+				player.gui.top.add{type = "button", name=btn_menu, caption = "B", tooltip = "Burny's Train Station Blueprint Creator"}
 			end
+		end
+		if player.gui.top[btn_menu] then --fix menu gui button for players who had mod previously installed
+			player.gui.top[btn_menu].destroy() --^ new since v0.0.8
+			player.gui.top.add{type = "button", name=btn_menu, caption = "B", tooltip = "Burny's Train Station Blueprint Creator"}
 		end
 	end
 end)
@@ -811,6 +887,16 @@ local function on_gui_click(event)
 			create_menu(player)
 		elseif event.element.name == btn_belt_type then
 			data.int_belt_type = data.int_belt_type % #belt_types + 1
+			set_global_variables(player, data)
+			frame.destroy()
+			create_menu(player)
+		elseif event.element.name == btn_fuel_type then
+			data.int_refuel_type = data.int_refuel_type % #fuel_types + 1
+			set_global_variables(player, data)
+			frame.destroy()
+			create_menu(player)
+		elseif event.element.name == btn_sides then
+			data.int_use_side = data.int_use_side % #sides + 1
 			set_global_variables(player, data)
 			frame.destroy()
 			create_menu(player)
