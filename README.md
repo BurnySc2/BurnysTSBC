@@ -4,6 +4,15 @@
 # What is this?
 This is a [mod](https://mods.factorio.com/) for the game [factorio](https://factorio.com/).
 
+# What does this mod do?
+You can see a [proper description and screenshots here](https://mods.factorio.com/mod/BurnysTSBC)
+
+# How to use the GUI of the mod properly?
+That can [also be seen here](https://mods.factorio.com/mod/BurnysTSBC)
+
+# Version history
+Available [here at the bottom](https://mods.factorio.com/mod/BurnysTSBC)
+
 # Installation
 Either start Factorio and look in the mod portal for "BurnysTSBC" and hit download.
 A new file zip file will be created in your mod folder (VERSION needs to be replaced with the mod version, e.g. 0.1.3):

@@ -12,7 +12,7 @@ assigning sprites to variables somehow broke it
 the technology for blueprints is gone, so i changed it to requirement "construction robots" tech
 ]]--
 
-local str_versionCheck = "0.1.2"
+local str_versionCheck = "0.1.3"
 
 local btn_menu = "btn_menu"
 local btn_menu2 = "btn_menu2"
@@ -51,12 +51,12 @@ local station_types = {"loading","unloading", "fluid loading", "fluid unloading"
 local non_fluid_station_types = {"loading", "unloading"}
 local inserter_types = {"inserter","fast-inserter","stack-inserter"}
 --local resource_types = {"iron-ore","copper-ore","stone","coal","iron-plate","copper-plate","steel-plate","empty-barrel","crude-oil-barrel","iron-gear-wheel","copper-cable","electronic-circuit","advanced-circuit"}
-local chest_types = {"iron-chest","steel-chest","logistic-chest-requester","logistic-chest-passive-provider","logistic-chest-active-provider","logistic-chest-storage"}
+local chest_types = {"iron-chest","steel-chest","logistic-chest-requester", "logistic-chest-buffer", "logistic-chest-passive-provider","logistic-chest-active-provider","logistic-chest-storage"}
 local belt_types = {"transport-belt", "fast-transport-belt", "express-transport-belt"}
 local sides = {"both", "right", "left"}
 local fluidSides = {"right", "left"}
 local flow_directions = {"none","front","back"}--,"side"}
-local fuel_types = {"raw-wood", "coal", "solid-fuel", "rocket-fuel", "uranium-fuel-cell"}
+local fuel_types = {"raw-wood", "coal", "solid-fuel", "rocket-fuel", "nuclear-fuel"}
 
 
 --added in version 0.1.2
@@ -623,12 +623,15 @@ function build_blueprint(data)
 		belt_direction3 = right_of_direction --belts for inserter #4
 		belt_direction4 = front_direction --belts for inserter #5 and #6
 		splitter_direction = right_of_direction --splitter direction 2 tiles away from inserters
+		
+		-- no more babysitting! changed in mod version 0.1.3
 		if data.bool_use_chest then
-			if data.int_chest_type == 3 then --just a smart preventing mechanic so that not accidently requester chests will be placed when unloading trains
-				chosen_chest = chest_types[4]
-			else
-				chosen_chest = chest_types[data.int_chest_type]
-			end
+			chosen_chest = chest_types[data.int_chest_type]
+		-- 	if data.int_chest_type == 3 or data.int_chest_type == 4 then --just a smart preventing mechanic so that not accidently requester chests will be placed when unloading trains
+		-- 		chosen_chest = chest_types[5]
+		-- 	else
+		-- 		chosen_chest = chest_types[data.int_chest_type]
+		-- 	end
 		end
 	elseif station_type == "loading" then
 		--these values can be understood as they apply for items on the right side of the track (when the single headed train is facing north)
@@ -637,12 +640,16 @@ function build_blueprint(data)
 		belt_direction3 = back_direction
 		belt_direction4 = back_direction
 		splitter_direction = left_of_direction
+
+		-- no more babysitting! changed in mod version 0.1.3
 		if data.bool_use_chest then
-			if data.int_chest_type < 3 then
-				chosen_chest = chest_types[data.int_chest_type]
-			else --just a smart preventing mechanic so that not accidently provider / storage chests will be placed when actually wanting to load the train and not unload it
-				chosen_chest = chest_types[3]
-			end
+			chosen_chest = chest_types[data.int_chest_type]
+		
+		-- 	if data.int_chest_type < 5 then
+		-- 		chosen_chest = chest_types[data.int_chest_type]
+		-- 	else --just a smart preventing mechanic so that not accidently provider / storage chests will be placed when actually wanting to load the train
+		-- 		chosen_chest = chest_types[3]
+		-- 	end
 		end
 	end
 
