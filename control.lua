@@ -12,7 +12,7 @@ assigning sprites to variables somehow broke it
 the technology for blueprints is gone, so i changed it to requirement "construction robots" tech
 ]]--
 
-local str_versionCheck = "0.1.3"
+local str_versionCheck = "0.1.4"
 
 local btn_menu = "btn_menu"
 local btn_menu2 = "btn_menu2"
