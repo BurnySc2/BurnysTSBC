@@ -1,0 +1,91 @@
+---------------------------------------------------------------------------------------------------
+Version: 0.1.4
+  Changes:
+    - Edited info.json to make it compatible for factorio v 0.17 (Thanks to smoopmeister)
+
+---------------------------------------------------------------------------------------------------
+Version: 0.1.3
+  Bugfixes:
+    - Changed Uranium Fuel Cells to Nuclear Fuel when requesting fuel, bug reported by thitar
+
+  Changes:
+    - Changed Uranium Fuel Cells to Nuclear Fuel when requesting fuel, bug reported by thitar
+    - Added logistic buffer chest to the list of available chests
+
+---------------------------------------------------------------------------------------------------
+Version: 0.1.2
+  Changes:
+    - Edited the info.json to make it compatible for factorio v 0.16
+
+---------------------------------------------------------------------------------------------------
+Version: 0.1.1
+  Bugfixes:
+    - Added a prevention mechanic from factorio crashing if the user enters invalid entries in the textboxes.
+
+---------------------------------------------------------------------------------------------------
+Version: 0.1.0
+  Bugfixes:
+    - Fixed an issue when using "loading" together with belt direction: "back"
+
+  Changes:
+    - Added loading and unloading stations for liquids with a liquid station design that I find compact and "fast" when loading/unloading. Only left or right side is allowed here because I found using "both" sides only decreases loading/unloading time by 33% while it is already very fast when using 2 pumps per wagon.
+    - Added a "stacker" so that you can build stackers for variable train length much faster now. Have tested it for trains of length 1-5 with each rotation; so there can still be hidden bugs, but I doubt it. The signals are placed exactly so that trains will fit in the space between signals. For now, the blueprint center is focused around the front end of the stacker. I might add an option of centering the blueprint to the rear of the stacker, or in the middle of it. Limit for stackers is train_length * lanes < 16384 (higher values result in 0.1 ingame fps)
+    - The option "green wire connection" now connects chests/storage tanks with the train stop (but the train stop will have no circuit condition set, for now). This way you can instantly set conditions to the train stop to "only be enabled when X amount of items is in chest/storage tank". Also, using "both" sides with chests now connects the left and right side with a wire.
+    - Changed default values of some settings: fuel requester chests=on, fuel type=solid fuel normal chest limit=7 (cargo wagon has 40 slots, if you use one-side loading you have 42 chest slots, so inserters will only pick up enough items in the chest to fill one cargo wagon), inserter type=fast inserter, belt type=fast belts, chest type=iron chest, connect everything with green wire=on, use filter inserter=off
+
+---------------------------------------------------------------------------------------------------
+Version: 0.0.9
+  Bugfixes:
+    - Fixed a bug when using a single side together with "connect with green wires" option as reported by Joey2241 and emre
+
+---------------------------------------------------------------------------------------------------
+Version: 0.0.8
+  Features:
+    - Players can now choose if they only want to use one side of the train station (left/right/both).
+    - Fuel can now be selected for the refuel requester chest.
+    - Smart loading/unloading now works when no item was chosen (next to "use filter inserters?").
+
+  Changes:
+    - The main mod button was made smaller.
+    - Tooltips were changed and rewritten.
+
+---------------------------------------------------------------------------------------------------
+Version: 0.0.7
+  Bugfixes:
+    - Fixed an issue introduced by v0.15 that didn't allow chest limit to be put to negative numbers (thanks to Nikey646 for pointing that out)
+
+---------------------------------------------------------------------------------------------------
+Version: 0.0.6
+  Info:
+    - Made mod compatible with v0.15.
+    - The technology requirements for the button to show up changed to: when thechnology "construction robots" is researched
+
+---------------------------------------------------------------------------------------------------
+Version: 0.0.5
+  Bugfixes:
+    - Fixed missing pole and signal when using single headed trains.
+
+  Features:
+    - Filtered item can now be set to any item (mods with new items included) - click the button with empty mouse cursor to remove filter (useful for when using requester chests and want to request several different items).
+    - New checkbox to link all chests with green wire (so you can easily check the circuit-network for item count).
+
+---------------------------------------------------------------------------------------------------
+Version: 0.0.4
+  Bugfixes:
+    - Fixed a bug with the refuel-requester chests.
+    - Fixed a tooltip.
+
+---------------------------------------------------------------------------------------------------
+Version: 0.0.3
+  Bugfixes:
+    - Fixed the evenly train (un-)loader (removed the 2nd arithmetic combinator; a variable was spelled wrong, the output of the first arithmetic combinator was missing). Increased chest-imbalance tolerance for the inserters (so that they keep working when inserter capacity bonus +x is researched).
+
+---------------------------------------------------------------------------------------------------
+Version: 0.0.2
+  Changes:
+    - Optimized code, added MadZuri's evenly train (un-)loader circuit network
+
+---------------------------------------------------------------------------------------------------
+Version: 0.0.1
+  Info:
+    - First working version
