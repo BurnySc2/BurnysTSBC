@@ -1,4 +1,9 @@
 ---------------------------------------------------------------------------------------------------
+Version: 0.1.5
+  Changes:
+    - Add changelog.txt file by Pi-C
+
+---------------------------------------------------------------------------------------------------
 Version: 0.1.4
   Changes:
     - Edited info.json to make it compatible for factorio v 0.17 (Thanks to smoopmeister)
