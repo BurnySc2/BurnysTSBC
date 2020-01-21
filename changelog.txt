@@ -1,4 +1,9 @@
 ---------------------------------------------------------------------------------------------------
+Version: 0.1.6
+  Changes:
+    - Bumped version to make it compatible with Factorio 0.18
+
+---------------------------------------------------------------------------------------------------
 Version: 0.1.5
   Changes:
     - Added a formatted changelog.txt made by Pi-C
