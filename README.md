@@ -22,12 +22,12 @@ You can see a [proper description and screenshots here](https://mods.factorio.co
 
 # Installation
 Either start Factorio and look in the mod portal for "BurnysTSBC" and hit download.
-A new file zip file will be created in your mod folder (<VERSION> needs to be replaced with the mod version, e.g. 0.1.3):
+A new file zip file will be created in your mod folder (<VERSION> needs to be replaced with the mod version, e.g. BurnysTSBC_0.1.6):
 ```
 C:\Users\<USER>\AppData\Roaming\Factorio\mods\BurnysTSBC_<VERSION>.zip
 ```
 
-Or download all these files and put them in a subfolder in your mod folder (<VERSION> needs to be replaced with the mod version, e.g. 0.1.3)
+Or download all these files and put them in a subfolder in your mod folder (<VERSION> needs to be replaced with the mod version, e.g. BurnysTSBC_0.1.6)
 e.g.:
 ```
 C:\Users\<USER>\AppData\Roaming\Factorio\mods\BurnysTSBC_<VERSION>\control.lua
