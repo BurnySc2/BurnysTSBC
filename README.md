@@ -3,13 +3,13 @@
 
 
 # Update - Mod goes web version
-This mod is no longer actively developed. 
+ABANDONED: This mod is no longer actively developed. 
 
 Instead, I have made a web version of the mod, so its features can be used on Factorio multiplayer servers that do not have the mod installed.
 
-The working web version [can be found here](https://burnysc2.github.io/Factorio/Tools/BurnysTSBC/) and should have nearly the same functionality as the mod.
+The working web version [can be found here](https://burnysc2.github.io/Factorio-Train-Station-Blueprint-Creator/) and should have nearly the same functionality as the mod.
 
-The source code (non-minified) for the web version [can be found here](https://github.com/BurnySc2/Factorio-Scripts/tree/master/BurnysTSBCsource).
+The source code (non-minified) for the web version [can be found here](https://github.com/BurnySc2/Factorio-Train-Station-Blueprint-Creator).
 
 
 # What is this?
